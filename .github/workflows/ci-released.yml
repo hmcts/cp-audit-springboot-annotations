@@ -34,5 +34,5 @@ jobs:
     with:
       is_release: true
       is_publish: true
-      trigger_docker: true
+      trigger_docker: false
       trigger_deploy: true
