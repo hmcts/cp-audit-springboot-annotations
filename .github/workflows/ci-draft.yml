@@ -19,5 +19,5 @@ jobs:
       HMCTS_ADO_PAT: ${{ secrets.HMCTS_CP_ADO_PAT }}
     with:
       is_publish: ${{ github.event_name == 'push' }}
-      trigger_docker: ${{ github.event_name == 'push' }}
+      trigger_docker: false
       trigger_deploy: ${{ github.event_name == 'push' }}

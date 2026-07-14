@@ -1,153 +1,236 @@
-# HMCTS Crime Service Spring Boot Template
+# HMCTS Audit Annotation Starter (Spring Boot 4, Java 25)
 
-This repository provides a template for building Spring Boot applications. While the initial use case was for the HMCTS API Marketplace, the template is designed to be reusable across jurisdictions and is intended as a base paved path for wider adoption.
+A drop-in Spring Boot **starter** that audits REST endpoints via controller annotations,
+publishing structured audit events to **ActiveMQ Artemis**.
 
-It includes essential configurations, dependencies, and recommended practices to help teams get started quickly.
-
-**Note:** This template is not a framework, nor is it intended to evolve into one. It simply leverages the Spring ecosystem and proven libraries from the wider engineering community.
-
-As HMCTS services are hosted on Azure, the included dependencies reflect this. Our aim is to stay as close to the cloud as possible in order to maximise alignment with the Shared Responsibility Model and achieve optimal security and operability.
-
-## Want to Build Your Own Path?
-
-That’s absolutely fine — but if you do, make sure your approach meets the following baseline requirements:
-
-* Security – All services must meet HMCTS security standards, including vulnerability scanning and least privilege access.
-* Observability – Logs, metrics, and traces must be integrated into HMCTS observability stack (e.g. Azure Monitoring).
-* Audit – Systems must produce audit trails that meet legal and operational requirements.
-* CI/CD Integration – Pipelines must include automated testing, deployments to multiple environments, and use approved tooling (e.g. GitHub Actions or Azure DevOps).
-* Compliance & Policy Alignment – Services must align with HMCTS/MoJ policies (e.g. Coding in the Open, mandatory security practices).
-* Ownership & Support – Domain teams must clearly own the service, maintain a support model, and define escalation paths.
-
-## Implementation Patterns & Demo Project
-
-This template is intentionally bare-bones. It provides the core Spring Boot scaffold — actuator, observability, logging — without any domain-specific or infrastructure patterns built in.
-
-For ready-to-use implementation guides and working code examples, see the demo project:
-
-> 🔗 **[service-hmcts-springboot-demo](https://github.com/hmcts/service-hmcts-springboot-demo)**
-
-Each pattern lives in its own module or folder so you can browse, copy, or cherry-pick exactly what you need:
-
-### Controllers & API
-| Demo | Branch |
-|---|---|
-| REST controller (request/response, validation, error handling) | [`controller-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/controller-demo) |
-| Exception handling | [`exception-handling-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/exception-handling-demo) |
-| API versioning | [`api-versioning-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/api-versioning-demo) |
-| OpenAPI client (calling downstream services) | [`openapi-client-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/openapi-client-demo) |
-| API tests | [`api-test-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/api-test-demo) |
-
-### Database / Persistence
-| Demo | Branch |
-|---|---|
-| JPA + PostgreSQL (Spring Boot 4) | [`postgres-springboot4`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/postgres-springboot4) |
-| Encrypted columns | [`postgres-encrypt-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/postgres-encrypt-demo) |
-| Pessimistic locking | [`postgres-lock`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/postgres-lock) |
-| Flyway Java-based migrations | [`flyway-java-migration-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/flyway-java-migration-demo) |
-
-### Messaging
-| Demo | Branch |
-|---|---|
-| Service Bus queue | [`servicebus-queue-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/servicebus-queue-demo) |
-| Service Bus topic / subscription | [`servicebus-topic-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/servicebus-topic-demo) |
-| Service Bus retry handling | [`servicebus-retry-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/servicebus-retry-demo) |
-
-### Security & Auth
-| Demo | Branch |
-|---|---|
-| JWT auth filter | [`jwt-token-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/jwt-token-demo) |
-| Auth filter | [`auth-filter-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/auth-filter-demo) |
-| Outbound HMAC auth | [`outbound-auth-hmac-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/outbound-auth-hmac-demo) |
-| Entra ID (Azure AD) | [`feature/entra-auth-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/feature/entra-auth-demo) |
-
-### Observability & Monitoring
-| Demo | Branch |
-|---|---|
-| Actuator endpoints | [`actuator-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/actuator-demo) |
-| Azure Monitor integration | [`azure-monitor-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/azure-monitor-demo) |
-| Audit filter | [`audit-filter-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/audit-filter-demo) |
-| Audit filter (Logback) | [`audit-filter-logback-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/audit-filter-logback-demo) |
-
-### Azure
-| Demo | Branch |
-|---|---|
-| Key Vault | [`azure-vault-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/azure-vault-demo) |
-| APIM integration | [`apim-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/apim-demo) |
-| Azurite (local Azure Storage) | [`azure-azureite-storage`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/azure-azureite-storage) |
-
-### Other
-| Demo | Branch |
-|---|---|
-| Clock / time abstraction (testable) | [`clock-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/clock-demo) |
-| JSON mapper patterns | [`json-mapper-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/json-mapper-demo) |
-| Gradle test configuration | [`gradle-test-demo`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/gradle-test-demo) |
-| Misc Java patterns | [`misc-java-demos`](https://github.com/hmcts/service-hmcts-springboot-demo/tree/misc-java-demos) |
-
-### Don't see the pattern you need?
-
-If you've built something useful that isn't covered above — **please add it to the demo project as an exemplar**. A new module or folder per pattern keeps things easy to discover and copy. Raise a PR against [service-hmcts-springboot-demo](https://github.com/hmcts/service-hmcts-springboot-demo) with your working example and a short README explaining the pattern.
+Endpoints are opted in with `@AuditDetail` and opted out with `@AuditExclude`.
+Unannotated endpoints are **blocked by default** (403). The `X-Correlation-ID` header is
+required on every audited request.
 
 ---
 
-## Documentation
+## Key Features
 
-Further documentation can be found in the [docs](docs) directory.
+- **Annotation-driven**: no OpenAPI spec, no path-param extraction config.
+- **Zero component scanning**: all beans created via a single `@AutoConfiguration`.
+- **Blocks by default**: unannotated endpoints return 403 until explicitly annotated.
+- **MDC-aware**: domain IDs (`materialId`, `caseId`, etc.) are read from MDC at response time.
+- **Active–Passive Artemis HA** support.
+- **SSL & non-SSL** Artemis connections.
+- **Fully externalised connection tuning**.
 
-### Key Documentation
-- [Spring Boot v4 Upgrade Guide](docs/SpringUpgradev4.md) - Details on the Spring Boot v4 upgrade, tracing test fixes, and code refactoring improvements
-- [Logging Documentation](docs/Logging.md) - Logging configuration and best practices
-- [Pipeline Documentation](docs/PIPELINE.md) - CI/CD pipeline configuration and deployment processes
+---
 
-### Prerequisites
-
-- ☕️ **Java 25 or later**: Ensure Java is installed and available on your `PATH`.
-- ⚙️ **Gradle**: [Install Gradle](https://gradle.org/install/). The project itself defines which Gradle version to use (gradle/wraper/gradle-wrapper.properties).
-
-You can verify installation with:
-```bash
-java -version
-gradle -v
-```
-
-## Installation
-
-### Build
-```bash
-gradle build
-```
-
-`build` will run all tests.
-
-### Tests
-- `gradle test` for running unit and integration tests
-
-## Static code analysis
-
-Install PMD
+## Building Locally
 
 ```bash
-brew install pmd
-```
-```bash
-pmd check \
-    --dir src/main/java \
-    --rulesets \
-    .github/pmd-ruleset.xml \
-    --format html \
-    -r build/reports/pmd/pmd-report.html
+./gradlew clean build
 ```
 
-Run PMD from Gradle
+The jar is produced at `build/libs/cp-audit-springboot-annotations-<version>.jar`.
+
+---
+
+## CI Pipeline & Publishing
+
+Publishing to Azure Artifacts is handled entirely by CI — you do not need ADO credentials locally.
+
+### On every push / PR to `main`
+
+The `ci-draft.yml` workflow triggers `ci-build-publish.yml` which runs three jobs in sequence:
+
+| Job | What it does |
+|---|---|
+| **Artefact-Version** | Generates a draft version number via `hmcts/artefact-version-action` |
+| **Build** | Runs `./gradlew build`, uploads the jar as a GitHub Actions artifact |
+| **Provider-Deploy** | Runs `./gradlew publish` using `AZURE_DEVOPS_ARTIFACT_USERNAME` and `AZURE_DEVOPS_ARTIFACT_TOKEN` from GitHub repo secrets — publishes to Azure Artifacts |
+
+### On GitHub Release (published)
+
+The `ci-released.yml` workflow runs the same jobs but with `is_release: true`, which produces a fixed release version number rather than a draft/snapshot.
+
+### Where it publishes
 
 ```
-gradle pmdTest
+https://pkgs.dev.azure.com/hmcts/Artifacts/_packaging/hmcts-lib/maven/v1
 ```
 
-### Contribute to This Repository
+Group: `uk.gov.hmcts.cp` · Artifact: `cp-audit-springboot-annotations`
 
-Contributions are welcome! Please see the [CONTRIBUTING.md](.github/CONTRIBUTING.md) file for guidelines.
+> The `AZURE_DEVOPS_ARTIFACT_USERNAME` and `AZURE_DEVOPS_ARTIFACT_TOKEN` secrets must be configured
+> in the GitHub repository settings for publishing to succeed.
+
+---
+
+## Getting Started
+
+### 1) Add the dependency
+
+```gradle
+dependencies {
+    implementation 'uk.gov.hmcts.cp:cp-audit-springboot-annotations:1.0.0'
+}
+```
+
+### 2) Annotate your controllers
+
+```java
+@RestController
+@RequestMapping("/client-subscriptions")
+public class DocumentController {
+
+    @GetMapping("/{clientSubscriptionId}/documents/{documentId}")
+    @AuditDetail(
+        eventName = "hearing-results-document.get-document",
+        action    = "Download",
+        pathParams = { "clientSubscriptionId", "documentId" }
+    )
+    public ResponseEntity<byte[]> getDocument(...) { ... }
+
+    @GetMapping("/health")
+    @AuditExclude
+    public ResponseEntity<String> health() { ... }
+}
+```
+
+### 3) Set the `X-Correlation-ID` header
+
+Every audited request must carry `X-Correlation-ID` (typically set upstream by a tracing filter).
+Requests without it are blocked with 403.
+
+### 4) Populate MDC for domain IDs (optional)
+
+Domain-specific IDs are read from MDC on the **response** event. Set them in your service layer:
+
+```java
+MDC.put(AuditMdcKeys.MATERIAL_ID,       materialId.toString());
+MDC.put(AuditMdcKeys.CASE_ID,           caseId.toString());
+MDC.put(AuditMdcKeys.HEARING_ID,        hearingId.toString());
+MDC.put(AuditMdcKeys.COURT_DOCUMENT_ID, courtDocumentId.toString());
+```
+
+### 5) Minimal configuration
+
+```yaml
+cp:
+  audit:
+    hosts:
+      - artemis-primary.internal
+      - artemis-secondary.internal   # optional (HA)
+    port: 61616
+    user: ${ARTEMIS_USER}
+    password: ${ARTEMIS_PASSWORD}
+    ssl-enabled: false
+
+material-client:
+  cjscppuid: ${SYSTEM_USER_ID}       # platform UUID for the authenticated system user
+```
+
+---
+
+## How It Works
+
+`ArtemisAuditAutoConfiguration` creates:
+
+- `ActiveMQConnectionFactory` with HA URL and property-driven timeouts/retries.
+- `JmsTemplate` (topic mode, persistent delivery).
+- `ObjectMapper` with JavaTimeModule.
+- `AuditDecisionService` — evaluates `@AuditDetail` / `@AuditExclude` and checks `X-Correlation-ID`.
+- `AuditPayloadGenerationService` — builds the structured JSON payload from the annotation and MDC.
+- `AuditSenderService` — publishes to `jms.topic.auditing.event`.
+- `AuditService` — orchestrates decision → payload → send.
+- `AuditFilter` — resolves the Spring MVC handler method and delegates to `AuditService`.
+
+**Decision logic per request:**
+
+| Condition | Outcome |
+|---|---|
+| Method/class annotated `@AuditExclude` | Pass through, no audit |
+| Method/class annotated `@AuditDetail`, `X-Correlation-ID` present | Audit request + response |
+| Method/class annotated `@AuditDetail`, `X-Correlation-ID` missing | 403 |
+| No annotation | 403 |
+
+---
+
+## `@AuditDetail` Reference
+
+| Attribute | Default | Purpose |
+|---|---|---|
+| `eventName` | *(required)* | Event name in the audit payload (e.g. `"my-service.get-item"`). |
+| `origin` | `"hearing-results-document"` | Service identifier in the audit envelope. |
+| `component` | `"QUERY_API"` | Component identifier in the audit envelope. |
+| `action` | `"View"` | Action label (e.g. `"Download"`, `"View"`). |
+| `pathParams` | `{}` | Path variable names to extract from the URI and include in the payload. |
+
+---
+
+## Configuration Reference
+
+### `cp.audit.*`
+
+| Property | Type | Default | Purpose |
+|---|---|---|---|
+| `cp.audit.hosts` | list\<string\> | | One or more Artemis hosts (HA supported). |
+| `cp.audit.port` | int | `61616` | Broker port. |
+| `cp.audit.user` | string | | Username. |
+| `cp.audit.password` | string | | Password. |
+| `cp.audit.ssl-enabled` | boolean | `false` | Enable TLS. |
+| `cp.audit.truststore` | path | | JKS truststore path (TLS only). |
+| `cp.audit.truststore-password` | string | | JKS truststore password (TLS only). |
+| `cp.audit.enabled` | boolean | `true` | Disable the entire auto-configuration. |
+
+### `cp.audit.jms.*`
+
+| Property | Default |
+|---|---|
+| `reconnect-attempts` | `-1` (infinite) |
+| `initial-connect-attempts` | `10` |
+| `retry-interval-ms` | `2000` |
+| `retry-multiplier` | `1.5` |
+| `max-retry-interval-ms` | `30000` |
+| `connection-ttl-ms` | `60000` |
+| `call-timeout-ms` | `15000` |
+
+---
+
+## Testing Guidance
+
+Mock `AuditSenderService` to verify audit events without a real broker:
+
+```java
+@SpringBootTest
+@AutoConfigureMockMvc
+class MyControllerAuditTest {
+
+    @Autowired MockMvc mockMvc;
+    @MockitoBean AuditSenderService auditSenderService;
+
+    @Test
+    void annotated_endpoint_should_produce_two_audit_events() throws Exception {
+        mockMvc.perform(get("/my-endpoint/123")
+                .header("X-Correlation-ID", "test-corr-id"))
+                .andExpect(status().isOk());
+
+        verify(auditSenderService, times(2)).send(any());
+    }
+}
+```
+
+---
+
+## SSL & HA
+
+The starter builds a single HA connection URL:
+
+```
+tcp://brokerA:61617?sslEnabled=true&trustStorePath=/opt/trust.jks&...,
+tcp://brokerB:61617?sslEnabled=true&trustStorePath=/opt/trust.jks&...
+```
+
+All parameters (SSL paths, retries, TTL) come from `cp.audit.*` properties.
+
+---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+MIT — see [LICENSE](LICENSE).
