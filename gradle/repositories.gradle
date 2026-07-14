@@ -17,8 +17,7 @@ repositories {
 publishing {
   publications {
     mavenJava(MavenPublication) {
-      artifact(tasks.named('bootJar'))
-      artifact(tasks.named('jar'))
+      from components.java
       pom {
         name = project.name
         url = "https://github.com/${githubRepo ?: 'org/repo'}"

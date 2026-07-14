@@ -1,3 +1,5 @@
+apply plugin: 'jacoco'
+
 tasks.named('test') {
   useJUnitPlatform {
   }
