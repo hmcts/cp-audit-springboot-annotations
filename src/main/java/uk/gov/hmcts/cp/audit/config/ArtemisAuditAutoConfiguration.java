@@ -150,7 +150,7 @@ public class ArtemisAuditAutoConfiguration {
                 "failoverOnInitialConnection=" + p.isHighAvailability()
         );
 
-        final StringBuilder ssl = new StringBuilder();
+        final StringBuilder ssl = new StringBuilder(256);
         if (p.isSslEnabled()) {
             ssl.append("sslEnabled=true&verifyHost=").append(p.isVerifyHost());
             final boolean hasTrust = hasLength(p.getTruststore());
@@ -158,12 +158,18 @@ public class ArtemisAuditAutoConfiguration {
             if (hasTrust || hasKey) {
                 final String trustPath = hasTrust ? p.getTruststore() : p.getKeystore();
                 final String trustPass = hasTrust ? p.getTruststorePassword() : p.getKeystorePassword();
-                if (hasLength(trustPath)) ssl.append("&trustStorePath=").append(trustPath);
-                if (hasLength(trustPass)) ssl.append("&trustStorePassword=").append(trustPass);
+                if (hasLength(trustPath)) {
+                    ssl.append("&trustStorePath=").append(trustPath);
+                }
+                if (hasLength(trustPass)) {
+                    ssl.append("&trustStorePassword=").append(trustPass);
+                }
             }
             if (p.isClientAuthRequired() && hasLength(p.getKeystore())) {
                 ssl.append("&keyStorePath=").append(p.getKeystore());
-                if (hasLength(p.getKeystorePassword())) ssl.append("&keyStorePassword=").append(p.getKeystorePassword());
+                if (hasLength(p.getKeystorePassword())) {
+                    ssl.append("&keyStorePassword=").append(p.getKeystorePassword());
+                }
             }
             ssl.append('&');
         }

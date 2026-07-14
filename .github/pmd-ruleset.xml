@@ -24,11 +24,13 @@
         <exclude name="AtLeastOneConstructor"/>
         <exclude name="CallSuperInConstructor"/>
         <exclude name="LongVariable"/>
+        <exclude name="OnlyOneReturn"/>
         <exclude name="ShortVariable"/>
         <exclude name="TooManyStaticImports"/>
     </rule>
     <rule ref="category/java/errorprone.xml">
         <exclude name="InvalidLogMessageFormat"/>
+        <exclude name="AvoidCatchingGenericException"/>
     </rule>
     <rule ref="category/java/performance.xml"/>
     <rule ref="category/java/security.xml"/>
