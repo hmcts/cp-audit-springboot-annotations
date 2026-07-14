@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.owasp.encoder.Encode;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerExecutionChain;
@@ -38,7 +39,10 @@ public class AuditFilter extends OncePerRequestFilter {
 
         switch (decision) {
             case AuditDecision.Block block -> {
-                log.error("Audit blocked request {} {}: {}", request.getMethod(), request.getRequestURI(), block.reason());
+                log.error("Audit blocked request {} {}: {}",
+                        Encode.forJava(request.getMethod()),
+                        Encode.forJava(request.getRequestURI()),
+                        Encode.forJava(block.reason()));
                 response.sendError(HttpServletResponse.SC_FORBIDDEN);
             }
             case AuditDecision.Exclude ignored -> chain.doFilter(request, response);
