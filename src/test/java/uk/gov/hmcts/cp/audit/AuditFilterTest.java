@@ -25,14 +25,22 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AuditFilterTest {
 
-    @Mock private RequestMappingHandlerMapping handlerMapping;
-    @Mock private AuditDecisionService decisionService;
-    @Mock private AuditService auditService;
-    @Mock private HttpServletRequest request;
-    @Mock private HttpServletResponse response;
-    @Mock private FilterChain chain;
-    @Mock private HandlerMethod handlerMethod;
-    @Mock private HandlerExecutionChain executionChain;
+    @Mock
+    private RequestMappingHandlerMapping handlerMapping;
+    @Mock
+    private AuditDecisionService decisionService;
+    @Mock
+    private AuditService auditService;
+    @Mock
+    private HttpServletRequest request;
+    @Mock
+    private HttpServletResponse response;
+    @Mock
+    private FilterChain chain;
+    @Mock
+    private HandlerMethod handlerMethod;
+    @Mock
+    private HandlerExecutionChain executionChain;
 
     @InjectMocks
     private AuditFilter auditFilter;
@@ -86,11 +94,11 @@ class AuditFilterTest {
         verify(auditService).auditResponse(eq(request), eq(annotation), eq("corr-123"), eq(200));
     }
 
-    private AuditDetail stubAuditDetail() throws Exception {
-        final var annotation = AuditDetail.class.getDeclaredMethod("eventName");
+    private AuditDetail stubAuditDetail() {
         return StubAuditDetail.class.getAnnotation(AuditDetail.class);
     }
 
     @AuditDetail(eventName = "test.event")
-    private static final class StubAuditDetail {}
+    private static final class StubAuditDetail {
+    }
 }
