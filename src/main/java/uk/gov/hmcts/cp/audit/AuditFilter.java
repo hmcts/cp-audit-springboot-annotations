@@ -40,9 +40,9 @@ public class AuditFilter extends OncePerRequestFilter {
         switch (decision) {
             case AuditDecision.Block block -> {
                 log.error("Audit blocked request {} {}: {}",
-                        Encode.forJava(request.getMethod()),
+                        request.getMethod(),
                         Encode.forJava(request.getRequestURI()),
-                        Encode.forJava(block.reason()));
+                        block.reason());
                 response.sendError(HttpServletResponse.SC_FORBIDDEN);
             }
             case AuditDecision.Exclude ignored -> chain.doFilter(request, response);
