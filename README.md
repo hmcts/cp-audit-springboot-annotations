@@ -21,7 +21,7 @@ required on every audited request.
 
 ---
 
-## Building the JAR
+## Building Locally
 
 ```bash
 ./gradlew clean build
@@ -31,25 +31,34 @@ The jar is produced at `build/libs/cp-audit-springboot-annotations-<version>.jar
 
 ---
 
-## Publishing to Azure Artifacts
+## CI Pipeline & Publishing
 
-Set the required environment variables, then publish:
+Publishing to Azure Artifacts is handled entirely by CI — you do not need ADO credentials locally.
 
-```bash
-export AZURE_DEVOPS_ARTIFACT_USERNAME=<your-ado-username>
-export AZURE_DEVOPS_ARTIFACT_TOKEN=<your-ado-pat>
-export ARTEFACT_VERSION=1.0.0
+### On every push / PR to `main`
 
-./gradlew publish
-```
+The `ci-draft.yml` workflow triggers `ci-build-publish.yml` which runs three jobs in sequence:
 
-The artifact is published to:
+| Job | What it does |
+|---|---|
+| **Artefact-Version** | Generates a draft version number via `hmcts/artefact-version-action` |
+| **Build** | Runs `./gradlew build`, uploads the jar as a GitHub Actions artifact |
+| **Provider-Deploy** | Runs `./gradlew publish` using `AZURE_DEVOPS_ARTIFACT_USERNAME` and `AZURE_DEVOPS_ARTIFACT_TOKEN` from GitHub repo secrets — publishes to Azure Artifacts |
+
+### On GitHub Release (published)
+
+The `ci-released.yml` workflow runs the same jobs but with `is_release: true`, which produces a fixed release version number rather than a draft/snapshot.
+
+### Where it publishes
 
 ```
 https://pkgs.dev.azure.com/hmcts/Artifacts/_packaging/hmcts-lib/maven/v1
 ```
 
 Group: `uk.gov.hmcts.cp` · Artifact: `cp-audit-springboot-annotations`
+
+> The `AZURE_DEVOPS_ARTIFACT_USERNAME` and `AZURE_DEVOPS_ARTIFACT_TOKEN` secrets must be configured
+> in the GitHub repository settings for publishing to succeed.
 
 ---
 
