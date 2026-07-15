@@ -1,13 +1,16 @@
 package uk.gov.hmcts.cp.audit.service;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.owasp.encoder.Encode;
+import org.springframework.web.method.HandlerMethod;
 import uk.gov.hmcts.cp.audit.annotation.AuditDetail;
 import uk.gov.hmcts.cp.audit.annotation.AuditExclude;
 import uk.gov.hmcts.cp.audit.model.AuditDecision;
-import org.springframework.web.method.HandlerMethod;
 
 import java.util.UUID;
 
+@Slf4j
 public class AuditDecisionService {
 
     private static final String CORRELATION_HEADER = "X-Correlation-ID";
@@ -34,6 +37,7 @@ public class AuditDecisionService {
         try {
             return new AuditDecision.Audit(detail, UUID.fromString(raw));
         } catch (final IllegalArgumentException e) {
+            log.error("{} value '{}' is not a valid UUID", CORRELATION_HEADER, Encode.forJava(raw));
             return new AuditDecision.Block(CORRELATION_HEADER + " is not a valid UUID");
         }
     }
