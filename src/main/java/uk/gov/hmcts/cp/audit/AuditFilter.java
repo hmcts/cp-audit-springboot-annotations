@@ -61,7 +61,7 @@ public class AuditFilter extends OncePerRequestFilter {
                 return hm;
             }
         } catch (final Exception e) {
-            log.debug("Could not resolve handler for {}", request.getRequestURI(), e);
+            log.error("Could not resolve handler for {}", Encode.forJava(request.getRequestURI()), e);
         }
         return null;
     }
