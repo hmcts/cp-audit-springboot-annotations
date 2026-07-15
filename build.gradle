@@ -20,7 +20,7 @@ ext {
     lombokVersion      = '1.18.46'
     jacksonVersion     = '2.20.0'
     jupiterVersion     = '5.12.2'
-    platformLauncher   = '1.12.2'
+    platformLauncher   = '6.1.2'
     artemisVer         = '2.43.0'
 }
 
@@ -59,7 +59,5 @@ dependencies {
         exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
     }
     testImplementation "org.springframework.boot:spring-boot-starter-web:$springBootVersion"
-    testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
-    testRuntimeOnly    "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
     testRuntimeOnly    "org.junit.platform:junit-platform-launcher:$platformLauncher"
 }
