@@ -13,6 +13,8 @@ import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import uk.gov.hmcts.cp.audit.annotation.AuditDetail;
 import uk.gov.hmcts.cp.audit.model.AuditDecision;
+
+import java.util.UUID;
 import uk.gov.hmcts.cp.audit.service.AuditDecisionService;
 import uk.gov.hmcts.cp.audit.service.AuditService;
 
@@ -82,16 +84,17 @@ class AuditFilterTest {
     @Test
     void filtering_an_audited_request_should_send_request_and_response_audit_events() throws Exception {
         final AuditDetail annotation = stubAuditDetail();
+        final UUID correlationId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         when(handlerMapping.getHandler(request)).thenReturn(executionChain);
         when(executionChain.getHandler()).thenReturn(handlerMethod);
-        when(decisionService.decide(handlerMethod, request)).thenReturn(new AuditDecision.Audit(annotation, "corr-123"));
+        when(decisionService.decide(handlerMethod, request)).thenReturn(new AuditDecision.Audit(annotation, correlationId));
         when(response.getStatus()).thenReturn(200);
 
         auditFilter.doFilterInternal(request, response, chain);
 
         verify(chain).doFilter(request, response);
-        verify(auditService).auditRequest(eq(request), eq(annotation), eq("corr-123"));
-        verify(auditService).auditResponse(eq(request), eq(annotation), eq("corr-123"), eq(200));
+        verify(auditService).auditRequest(eq(request), eq(annotation), eq(correlationId));
+        verify(auditService).auditResponse(eq(request), eq(annotation), eq(correlationId), eq(200));
     }
 
     private AuditDetail stubAuditDetail() {

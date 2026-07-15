@@ -18,7 +18,7 @@ public class AuditPayloadGenerationService {
 
     public AuditPayload build(final HttpServletRequest request,
                               final AuditDetail annotation,
-                              final String correlationId,
+                              final UUID correlationId,
                               final AuditEventType eventType,
                               final Integer responseStatus) {
         return AuditPayload.builder()

@@ -6,6 +6,8 @@ import uk.gov.hmcts.cp.audit.annotation.AuditExclude;
 import uk.gov.hmcts.cp.audit.model.AuditDecision;
 import org.springframework.web.method.HandlerMethod;
 
+import java.util.UUID;
+
 public class AuditDecisionService {
 
     private static final String CORRELATION_HEADER = "X-Correlation-ID";
@@ -25,11 +27,14 @@ public class AuditDecisionService {
             return new AuditDecision.Block("No @AuditDetail annotation on handler");
         }
 
-        final String correlationId = request.getHeader(CORRELATION_HEADER);
-        if (correlationId == null || correlationId.isBlank()) {
+        final String raw = request.getHeader(CORRELATION_HEADER);
+        if (raw == null || raw.isBlank()) {
             return new AuditDecision.Block("Missing " + CORRELATION_HEADER + " header");
         }
-
-        return new AuditDecision.Audit(detail, correlationId);
+        try {
+            return new AuditDecision.Audit(detail, UUID.fromString(raw));
+        } catch (final IllegalArgumentException e) {
+            return new AuditDecision.Block(CORRELATION_HEADER + " is not a valid UUID");
+        }
     }
 }

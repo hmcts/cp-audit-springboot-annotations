@@ -12,6 +12,7 @@ import uk.gov.hmcts.cp.audit.model.AuditMetadata;
 import uk.gov.hmcts.cp.audit.model.AuditPayload;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -20,7 +21,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AuditServiceTest {
 
-    private static final String CORRELATION_ID = "corr-1";
+    private static final UUID CORRELATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
     @Mock private AuditPayloadGenerationService payloadService;
     @Mock private AuditSenderService senderService;

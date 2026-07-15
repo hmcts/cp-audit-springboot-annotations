@@ -18,7 +18,7 @@ public class AuditPayload {
     private final UUID caseId;
     private final UUID hearingId;
     private final UUID courtDocumentId;
-    private final String correlationId;
+    private final UUID correlationId;
     private final Integer responseStatus;
     private final Map<String, UUID> pathParams;
 }

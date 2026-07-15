@@ -14,6 +14,7 @@ import uk.gov.hmcts.cp.audit.model.AuditMetadata;
 import uk.gov.hmcts.cp.audit.model.AuditPayload;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -44,7 +45,7 @@ class AuditSenderServiceTest {
                         .build())
                 .eventType(AuditEventType.REQUEST)
                 .action("View")
-                .correlationId("corr-123")
+                .correlationId(UUID.fromString("00000000-0000-0000-0000-000000000123"))
                 .build();
 
         service.send(payload);
@@ -53,7 +54,7 @@ class AuditSenderServiceTest {
         verify(jmsTemplate).convertAndSend(eq("jms.topic.auditing.event"), jsonCaptor.capture());
         assertThat(jsonCaptor.getValue())
                 .contains("test.event")
-                .contains("corr-123")
+                .contains("00000000-0000-0000-0000-000000000123")
                 .contains("_metadata");
     }
 }
