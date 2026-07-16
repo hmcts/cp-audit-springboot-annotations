@@ -193,6 +193,79 @@ material-client:
 
 ---
 
+## Environment Setup
+
+Secrets (`ARTEMIS_USER`, `ARTEMIS_PASSWORD`, `ARTEMIS_TRUSTSTORE_PASSWORD`) should be sourced from Kubernetes secrets / Azure Key Vault via the platform — the same pattern used by other Artemis consumers in the service.
+
+### Local / Dev (no broker — disable auditing)
+
+```yaml
+cp:
+  audit:
+    enabled: false
+```
+
+### Non-prod (single broker, no SSL)
+
+```yaml
+cp:
+  audit:
+    hosts:
+      - artemis-broker.internal
+    port: 61616
+    user: ${ARTEMIS_USER}
+    password: ${ARTEMIS_PASSWORD}
+```
+
+### HA (two brokers, no SSL)
+
+```yaml
+cp:
+  audit:
+    hosts:
+      - artemis-primary.internal
+      - artemis-secondary.internal
+    port: 61616
+    user: ${ARTEMIS_USER}
+    password: ${ARTEMIS_PASSWORD}
+    high-availability: true
+```
+
+### Production (HA + SSL)
+
+```yaml
+cp:
+  audit:
+    hosts:
+      - artemis-primary.internal
+      - artemis-secondary.internal
+    port: 61617
+    user: ${ARTEMIS_USER}
+    password: ${ARTEMIS_PASSWORD}
+    high-availability: true
+    ssl-enabled: true
+    verify-host: true
+    truststore: /opt/certs/artemis-trust.jks
+    truststore-password: ${ARTEMIS_TRUSTSTORE_PASSWORD}
+```
+
+### JMS tuning (optional — defaults are suitable for most environments)
+
+```yaml
+cp:
+  audit:
+    jms:
+      reconnect-attempts: -1         # infinite
+      initial-connect-attempts: 10
+      retry-interval-ms: 2000
+      retry-multiplier: 1.5
+      max-retry-interval-ms: 30000
+      connection-ttl-ms: 60000
+      call-timeout-ms: 15000
+```
+
+---
+
 ## Testing Guidance
 
 Mock `AuditSenderService` to verify audit events without a real broker:
