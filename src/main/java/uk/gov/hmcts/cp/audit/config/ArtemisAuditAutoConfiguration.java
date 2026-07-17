@@ -53,7 +53,8 @@ public class ArtemisAuditAutoConfiguration {
     public ActiveMQConnectionFactory auditConnectionFactory(final AuditProperties properties) {
         validateProps(properties);
         final ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(buildConnectionUrl(properties));
-        log.info("Audit Artemis: hosts={}", properties.getHosts());
+        log.info("Audit Artemis connection factory initialised: enabled={}, hosts={}",
+                properties.isEnabled(), properties.getHosts());
         return factory;
     }
 
