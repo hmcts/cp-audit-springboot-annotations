@@ -15,9 +15,7 @@ required on every audited request.
 - **Zero component scanning**: all beans created via a single `@AutoConfiguration`.
 - **Blocks by default**: unannotated endpoints return 403 until explicitly annotated.
 - **MDC-aware**: domain IDs (`materialId`, `caseId`, etc.) are read from MDC at response time.
-- **Active–Passive Artemis HA** support.
-- **SSL & non-SSL** Artemis connections.
-- **Fully externalised connection tuning**.
+- **Active–Passive Artemis HA** auto-detected from host count.
 
 ---
 
@@ -116,14 +114,7 @@ cp:
   audit:
     hosts:
       - artemis-primary.internal
-      - artemis-secondary.internal   # optional (HA)
-    port: 61616
-    user: ${ARTEMIS_USER}
-    password: ${ARTEMIS_PASSWORD}
-    ssl-enabled: false
-
-material-client:
-  cjscppuid: ${SYSTEM_USER_ID}       # platform UUID for the authenticated system user
+      - artemis-secondary.internal   # optional — two hosts enables HA automatically
 ```
 
 ---
@@ -132,7 +123,7 @@ material-client:
 
 `ArtemisAuditAutoConfiguration` creates:
 
-- `ActiveMQConnectionFactory` with HA URL and property-driven timeouts/retries.
+- `ActiveMQConnectionFactory` with HA URL and hard-coded connection tuning (port 61616, infinite reconnect, exponential back-off).
 - `JmsTemplate` (topic mode, persistent delivery).
 - `ObjectMapper` with JavaTimeModule.
 - `AuditDecisionService` — evaluates `@AuditDetail` / `@AuditExclude` and checks `X-Correlation-ID`.
@@ -170,32 +161,15 @@ material-client:
 
 | Property | Type | Default | Purpose |
 |---|---|---|---|
-| `cp.audit.hosts` | list\<string\> | | One or more Artemis hosts (HA supported). |
-| `cp.audit.port` | int | `61616` | Broker port. |
-| `cp.audit.user` | string | | Username. |
-| `cp.audit.password` | string | | Password. |
-| `cp.audit.ssl-enabled` | boolean | `false` | Enable TLS. |
-| `cp.audit.truststore` | path | | JKS truststore path (TLS only). |
-| `cp.audit.truststore-password` | string | | JKS truststore password (TLS only). |
-| `cp.audit.enabled` | boolean | `true` | Disable the entire auto-configuration. |
+| `cp.audit.enabled` | boolean | `true` | Set `false` to disable auditing (e.g. in tests). A `WARN` is logged on startup when disabled. |
+| `cp.audit.hosts` | list\<string\> | *(required)* | One or more Artemis broker hostnames. Two hosts enables HA automatically. |
 
-### `cp.audit.jms.*`
-
-| Property | Default |
-|---|---|
-| `reconnect-attempts` | `-1` (infinite) |
-| `initial-connect-attempts` | `10` |
-| `retry-interval-ms` | `2000` |
-| `retry-multiplier` | `1.5` |
-| `max-retry-interval-ms` | `30000` |
-| `connection-ttl-ms` | `60000` |
-| `call-timeout-ms` | `15000` |
+All other connection parameters (port, credentials, SSL, retries, timeouts) are hard-coded in
+`ArtemisAuditAutoConfiguration` and are not configurable.
 
 ---
 
 ## Environment Setup
-
-Secrets (`ARTEMIS_USER`, `ARTEMIS_PASSWORD`, `ARTEMIS_TRUSTSTORE_PASSWORD`) should be sourced from Kubernetes secrets / Azure Key Vault via the platform — the same pattern used by other Artemis consumers in the service.
 
 ### Local / Dev (no broker — disable auditing)
 
@@ -205,19 +179,18 @@ cp:
     enabled: false
 ```
 
-### Non-prod (single broker, no SSL)
+A `WARN` is logged on startup so it is visible in test output.
+
+### Non-prod (single broker)
 
 ```yaml
 cp:
   audit:
     hosts:
       - artemis-broker.internal
-    port: 61616
-    user: ${ARTEMIS_USER}
-    password: ${ARTEMIS_PASSWORD}
 ```
 
-### HA (two brokers, no SSL)
+### Production (HA — two brokers)
 
 ```yaml
 cp:
@@ -225,44 +198,9 @@ cp:
     hosts:
       - artemis-primary.internal
       - artemis-secondary.internal
-    port: 61616
-    user: ${ARTEMIS_USER}
-    password: ${ARTEMIS_PASSWORD}
-    high-availability: true
 ```
 
-### Production (HA + SSL)
-
-```yaml
-cp:
-  audit:
-    hosts:
-      - artemis-primary.internal
-      - artemis-secondary.internal
-    port: 61617
-    user: ${ARTEMIS_USER}
-    password: ${ARTEMIS_PASSWORD}
-    high-availability: true
-    ssl-enabled: true
-    verify-host: true
-    truststore: /opt/certs/artemis-trust.jks
-    truststore-password: ${ARTEMIS_TRUSTSTORE_PASSWORD}
-```
-
-### JMS tuning (optional — defaults are suitable for most environments)
-
-```yaml
-cp:
-  audit:
-    jms:
-      reconnect-attempts: -1         # infinite
-      initial-connect-attempts: 10
-      retry-interval-ms: 2000
-      retry-multiplier: 1.5
-      max-retry-interval-ms: 30000
-      connection-ttl-ms: 60000
-      call-timeout-ms: 15000
-```
+HA is enabled automatically when two hosts are provided.
 
 ---
 
@@ -281,7 +219,7 @@ class MyControllerAuditTest {
     @Test
     void annotated_endpoint_should_produce_two_audit_events() throws Exception {
         mockMvc.perform(get("/my-endpoint/123")
-                .header("X-Correlation-ID", "test-corr-id"))
+                .header("X-Correlation-ID", "00000000-0000-0000-0000-000000000001"))
                 .andExpect(status().isOk());
 
         verify(auditSenderService, times(2)).send(any());
@@ -291,16 +229,16 @@ class MyControllerAuditTest {
 
 ---
 
-## SSL & HA
+## HA
 
-The starter builds a single HA connection URL:
+When two hosts are configured the starter builds a failover URL automatically:
 
 ```
-tcp://brokerA:61617?sslEnabled=true&trustStorePath=/opt/trust.jks&...,
-tcp://brokerB:61617?sslEnabled=true&trustStorePath=/opt/trust.jks&...
+tcp://brokerA:61616?ha=true&reconnectAttempts=-1&...,
+tcp://brokerB:61616?ha=true&reconnectAttempts=-1&...
 ```
 
-All parameters (SSL paths, retries, TTL) come from `cp.audit.*` properties.
+No extra configuration is required — HA is detected from host count.
 
 ---
 
