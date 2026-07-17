@@ -17,6 +17,8 @@ import org.springframework.core.Ordered;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
+
+import java.util.List;
 import uk.gov.hmcts.cp.audit.AuditFilter;
 import uk.gov.hmcts.cp.audit.service.AuditDecisionService;
 import uk.gov.hmcts.cp.audit.service.AuditPayloadGenerationService;
@@ -106,10 +108,10 @@ public class ArtemisAuditAutoConfiguration {
 
     @Bean
     public FilterRegistrationBean<AuditFilter> auditFilterRegistration(
-            @Qualifier("requestMappingHandlerMapping") final RequestMappingHandlerMapping handlerMapping,
+            final List<RequestMappingHandlerMapping> handlerMappings,
             final AuditDecisionService decisionService,
             final AuditService auditService) {
-        final AuditFilter filter = new AuditFilter(handlerMapping, decisionService, auditService);
+        final AuditFilter filter = new AuditFilter(handlerMappings, decisionService, auditService);
         final FilterRegistrationBean<AuditFilter> reg = new FilterRegistrationBean<>(filter);
         reg.setOrder(Ordered.LOWEST_PRECEDENCE - 100);
         reg.addUrlPatterns("/*");
