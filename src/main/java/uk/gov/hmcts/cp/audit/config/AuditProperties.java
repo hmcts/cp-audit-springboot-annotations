@@ -12,6 +12,4 @@ import java.util.List;
 public class AuditProperties {
 
     private final List<String> hosts;
-    private final String user;
-    private final String password;
 }

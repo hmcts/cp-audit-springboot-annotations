@@ -24,7 +24,6 @@ import uk.gov.hmcts.cp.audit.service.AuditSenderService;
 import uk.gov.hmcts.cp.audit.service.AuditService;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.StringJoiner;
 
 @Slf4j
@@ -54,8 +53,6 @@ public class ArtemisAuditAutoConfiguration {
     public ActiveMQConnectionFactory auditConnectionFactory(final AuditProperties properties) {
         validateProps(properties);
         final ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(buildConnectionUrl(properties));
-        factory.setUser(Objects.toString(properties.getUser(), ""));
-        factory.setPassword(Objects.toString(properties.getPassword(), ""));
         log.info("Audit Artemis: hosts={}", properties.getHosts());
         return factory;
     }
