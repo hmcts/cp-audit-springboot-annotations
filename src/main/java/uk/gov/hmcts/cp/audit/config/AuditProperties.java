@@ -12,4 +12,5 @@ import java.util.List;
 public class AuditProperties {
 
     private final List<String> hosts;
+    private final boolean enabled;
 }
