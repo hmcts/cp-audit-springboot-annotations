@@ -17,8 +17,6 @@ import org.springframework.core.Ordered;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
-
-import java.util.List;
 import uk.gov.hmcts.cp.audit.AuditFilter;
 import uk.gov.hmcts.cp.audit.service.AuditDecisionService;
 import uk.gov.hmcts.cp.audit.service.AuditPayloadGenerationService;
@@ -35,20 +33,20 @@ import java.util.StringJoiner;
 @EnableConfigurationProperties(AuditProperties.class)
 public class ArtemisAuditAutoConfiguration {
 
-    private static final String BEAN_CF  = "auditConnectionFactory";
+    private static final String BEAN_CF = "auditConnectionFactory";
     private static final String BEAN_JMS = "auditJmsTemplate";
-    private static final String BEAN_OM  = "auditObjectMapper";
+    private static final String BEAN_OM = "auditObjectMapper";
 
     // Fixed connection parameters — not configurable per environment
-    private static final int    PORT                    = 61_616;
-    private static final int    SESSION_CACHE_SIZE      = 10;
-    private static final int    RECONNECT_ATTEMPTS      = -1;   // infinite
-    private static final int    INITIAL_CONNECT_ATTEMPTS = 10;
-    private static final long   RETRY_INTERVAL_MS       = 2_000;
-    private static final double RETRY_MULTIPLIER        = 1.5;
-    private static final long   MAX_RETRY_INTERVAL_MS   = 30_000;
-    private static final long   CONNECTION_TTL_MS       = 60_000;
-    private static final long   CALL_TIMEOUT_MS         = 15_000;
+    private static final int PORT = 61_616;
+    private static final int SESSION_CACHE_SIZE = 10;
+    private static final int RECONNECT_ATTEMPTS = -1;   // infinite
+    private static final int INITIAL_CONNECT_ATTEMPTS = 10;
+    private static final long RETRY_INTERVAL_MS = 2_000;
+    private static final double RETRY_MULTIPLIER = 1.5;
+    private static final long MAX_RETRY_INTERVAL_MS = 30_000;
+    private static final long CONNECTION_TTL_MS = 60_000;
+    private static final long CALL_TIMEOUT_MS = 15_000;
 
     @Bean(name = BEAN_CF)
     @ConditionalOnMissingBean(name = BEAN_CF)
@@ -121,6 +119,7 @@ public class ArtemisAuditAutoConfiguration {
     private static void validateProps(final AuditProperties p) {
         final List<String> hosts = p.getHosts();
         if (hosts == null || hosts.isEmpty()) {
+            log.error("audit filter cp.audit.hosts must contain at least one broker host");
             throw new IllegalStateException("cp.audit.hosts must contain at least one broker host");
         }
     }

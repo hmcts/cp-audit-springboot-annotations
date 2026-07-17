@@ -11,6 +11,6 @@ import java.util.List;
 @ConfigurationProperties(prefix = "cp.audit")
 public class AuditProperties {
 
-    private final List<String> hosts;
     private final boolean enabled;
+    private final List<String> hosts;
 }
