@@ -14,7 +14,7 @@ public class ArtemisAuditDisabledConfiguration {
 
     @Bean
     public String auditDisabledMarker(final AuditProperties properties) {
-        log.info("Audit disabled: enabled={}, hosts={}", properties.isEnabled(), properties.getHosts());
+        log.warn("Audit disabled: enabled={}, hosts={}", properties.isEnabled(), properties.getHosts());
         return "auditDisabled";
     }
 }
