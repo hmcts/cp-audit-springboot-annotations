@@ -16,12 +16,13 @@ import uk.gov.hmcts.cp.audit.service.AuditDecisionService;
 import uk.gov.hmcts.cp.audit.service.AuditService;
 
 import java.io.IOException;
+import java.util.List;
 
 @Slf4j
 @RequiredArgsConstructor
 public class AuditFilter extends OncePerRequestFilter {
 
-    private final RequestMappingHandlerMapping handlerMapping;
+    private final List<RequestMappingHandlerMapping> handlerMappings;
     private final AuditDecisionService decisionService;
     private final AuditService auditService;
 
@@ -55,13 +56,15 @@ public class AuditFilter extends OncePerRequestFilter {
     }
 
     private HandlerMethod resolveHandler(final HttpServletRequest request) {
-        try {
-            final HandlerExecutionChain chain = handlerMapping.getHandler(request);
-            if (chain != null && chain.getHandler() instanceof HandlerMethod hm) {
-                return hm;
+        for (final RequestMappingHandlerMapping mapping : handlerMappings) {
+            try {
+                final HandlerExecutionChain chain = mapping.getHandler(request);
+                if (chain != null && chain.getHandler() instanceof HandlerMethod hm) {
+                    return hm;
+                }
+            } catch (final Exception e) {
+                log.error("Could not resolve handler for {}", Encode.forJava(request.getRequestURI()), e);
             }
-        } catch (final Exception e) {
-            log.error("Could not resolve handler for {}", Encode.forJava(request.getRequestURI()), e);
         }
         return null;
     }

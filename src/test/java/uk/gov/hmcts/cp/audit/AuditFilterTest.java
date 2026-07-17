@@ -3,9 +3,9 @@ package uk.gov.hmcts.cp.audit;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.method.HandlerMethod;
@@ -13,10 +13,11 @@ import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import uk.gov.hmcts.cp.audit.annotation.AuditDetail;
 import uk.gov.hmcts.cp.audit.model.AuditDecision;
-
-import java.util.UUID;
 import uk.gov.hmcts.cp.audit.service.AuditDecisionService;
 import uk.gov.hmcts.cp.audit.service.AuditService;
+
+import java.util.List;
+import java.util.UUID;
 
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
@@ -27,25 +28,21 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AuditFilterTest {
 
-    @Mock
-    private RequestMappingHandlerMapping handlerMapping;
-    @Mock
-    private AuditDecisionService decisionService;
-    @Mock
-    private AuditService auditService;
-    @Mock
-    private HttpServletRequest request;
-    @Mock
-    private HttpServletResponse response;
-    @Mock
-    private FilterChain chain;
-    @Mock
-    private HandlerMethod handlerMethod;
-    @Mock
-    private HandlerExecutionChain executionChain;
+    @Mock private RequestMappingHandlerMapping handlerMapping;
+    @Mock private AuditDecisionService decisionService;
+    @Mock private AuditService auditService;
+    @Mock private HttpServletRequest request;
+    @Mock private HttpServletResponse response;
+    @Mock private FilterChain chain;
+    @Mock private HandlerMethod handlerMethod;
+    @Mock private HandlerExecutionChain executionChain;
 
-    @InjectMocks
     private AuditFilter auditFilter;
+
+    @BeforeEach
+    void setUp() {
+        auditFilter = new AuditFilter(List.of(handlerMapping), decisionService, auditService);
+    }
 
     @Test
     void filtering_a_request_with_no_handler_should_pass_through_to_chain() throws Exception {

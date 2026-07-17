@@ -24,10 +24,7 @@ import uk.gov.hmcts.cp.audit.service.AuditSenderService;
 import uk.gov.hmcts.cp.audit.service.AuditService;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.StringJoiner;
-
-import static org.springframework.util.StringUtils.hasLength;
 
 @Slf4j
 @AutoConfiguration
@@ -36,30 +33,37 @@ import static org.springframework.util.StringUtils.hasLength;
 @EnableConfigurationProperties(AuditProperties.class)
 public class ArtemisAuditAutoConfiguration {
 
-    private static final String BEAN_CF  = "auditConnectionFactory";
+    private static final String BEAN_CF = "auditConnectionFactory";
     private static final String BEAN_JMS = "auditJmsTemplate";
-    private static final String BEAN_OM  = "auditObjectMapper";
+    private static final String BEAN_OM = "auditObjectMapper";
+
+    // Fixed connection parameters — not configurable per environment
+    private static final int PORT = 61_616;
+    private static final int SESSION_CACHE_SIZE = 10;
+    private static final int RECONNECT_ATTEMPTS = -1;   // infinite
+    private static final int INITIAL_CONNECT_ATTEMPTS = 10;
+    private static final long RETRY_INTERVAL_MS = 2_000;
+    private static final double RETRY_MULTIPLIER = 1.5;
+    private static final long MAX_RETRY_INTERVAL_MS = 30_000;
+    private static final long CONNECTION_TTL_MS = 60_000;
+    private static final long CALL_TIMEOUT_MS = 15_000;
 
     @Bean(name = BEAN_CF)
     @ConditionalOnMissingBean(name = BEAN_CF)
     public ActiveMQConnectionFactory auditConnectionFactory(final AuditProperties properties) {
         validateProps(properties);
         final ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(buildConnectionUrl(properties));
-        factory.setUser(Objects.toString(properties.getUser(), ""));
-        factory.setPassword(Objects.toString(properties.getPassword(), ""));
-        log.info("Audit Artemis: hosts={} port={} ssl={} ha={}",
-                properties.getHosts(), properties.getPort(), properties.isSslEnabled(), properties.isHighAvailability());
+        log.info("Audit Artemis connection factory initialised: enabled={}, hosts={}",
+                properties.isEnabled(), properties.getHosts());
         return factory;
     }
 
     @Bean(name = BEAN_JMS)
     @ConditionalOnMissingBean(name = BEAN_JMS)
     public JmsTemplate auditJmsTemplate(
-            @Qualifier(BEAN_CF) final ActiveMQConnectionFactory connectionFactory,
-            final AuditProperties properties) {
+            @Qualifier(BEAN_CF) final ActiveMQConnectionFactory connectionFactory) {
         final CachingConnectionFactory caching = new CachingConnectionFactory(connectionFactory);
-        final AuditProperties.JmsProperties jms = properties.getJms();
-        caching.setSessionCacheSize(jms.getSessionCacheSize());
+        caching.setSessionCacheSize(SESSION_CACHE_SIZE);
         caching.setCacheProducers(true);
         caching.setReconnectOnException(true);
 
@@ -103,10 +107,10 @@ public class ArtemisAuditAutoConfiguration {
 
     @Bean
     public FilterRegistrationBean<AuditFilter> auditFilterRegistration(
-            @Qualifier("requestMappingHandlerMapping") final RequestMappingHandlerMapping handlerMapping,
+            final List<RequestMappingHandlerMapping> handlerMappings,
             final AuditDecisionService decisionService,
             final AuditService auditService) {
-        final AuditFilter filter = new AuditFilter(handlerMapping, decisionService, auditService);
+        final AuditFilter filter = new AuditFilter(handlerMappings, decisionService, auditService);
         final FilterRegistrationBean<AuditFilter> reg = new FilterRegistrationBean<>(filter);
         reg.setOrder(Ordered.LOWEST_PRECEDENCE - 100);
         reg.addUrlPatterns("/*");
@@ -116,67 +120,28 @@ public class ArtemisAuditAutoConfiguration {
     private static void validateProps(final AuditProperties p) {
         final List<String> hosts = p.getHosts();
         if (hosts == null || hosts.isEmpty()) {
+            log.error("audit filter cp.audit.hosts must contain at least one broker host");
             throw new IllegalStateException("cp.audit.hosts must contain at least one broker host");
-        }
-        if (p.getPort() <= 0) {
-            throw new IllegalStateException("cp.audit.port must be a positive integer");
-        }
-        if (p.isSslEnabled()) {
-            if (hasLength(p.getTruststore()) && p.getTruststorePassword() == null) {
-                throw new IllegalStateException("cp.audit.truststore-password must be set when truststore is provided");
-            }
-            if (p.isClientAuthRequired()) {
-                if (!hasLength(p.getKeystore())) {
-                    throw new IllegalStateException("client-auth-required=true requires cp.audit.keystore");
-                }
-                if (p.getKeystorePassword() == null) {
-                    throw new IllegalStateException("cp.audit.keystore-password must be set when keystore is provided");
-                }
-            }
         }
     }
 
     private static String buildConnectionUrl(final AuditProperties p) {
-        final AuditProperties.JmsProperties jms = p.getJms();
+        final boolean ha = p.getHosts().size() > 1;
         final String common = String.join("&",
-                "ha=" + p.isHighAvailability(),
-                "reconnectAttempts=" + jms.getReconnectAttempts(),
-                "initialConnectAttempts=" + jms.getInitialConnectAttempts(),
-                "retryInterval=" + jms.getRetryIntervalMs(),
-                "retryIntervalMultiplier=" + jms.getRetryMultiplier(),
-                "maxRetryInterval=" + jms.getMaxRetryIntervalMs(),
-                "connectionTtl=" + jms.getConnectionTtlMs(),
-                "callTimeout=" + jms.getCallTimeoutMs(),
-                "failoverOnInitialConnection=" + p.isHighAvailability()
+                "ha=" + ha,
+                "reconnectAttempts=" + RECONNECT_ATTEMPTS,
+                "initialConnectAttempts=" + INITIAL_CONNECT_ATTEMPTS,
+                "retryInterval=" + RETRY_INTERVAL_MS,
+                "retryIntervalMultiplier=" + RETRY_MULTIPLIER,
+                "maxRetryInterval=" + MAX_RETRY_INTERVAL_MS,
+                "connectionTtl=" + CONNECTION_TTL_MS,
+                "callTimeout=" + CALL_TIMEOUT_MS,
+                "failoverOnInitialConnection=" + ha
         );
-
-        final StringBuilder ssl = new StringBuilder(256);
-        if (p.isSslEnabled()) {
-            ssl.append("sslEnabled=true&verifyHost=").append(p.isVerifyHost());
-            final boolean hasTrust = hasLength(p.getTruststore());
-            final boolean hasKey   = hasLength(p.getKeystore());
-            if (hasTrust || hasKey) {
-                final String trustPath = hasTrust ? p.getTruststore() : p.getKeystore();
-                final String trustPass = hasTrust ? p.getTruststorePassword() : p.getKeystorePassword();
-                if (hasLength(trustPath)) {
-                    ssl.append("&trustStorePath=").append(trustPath);
-                }
-                if (hasLength(trustPass)) {
-                    ssl.append("&trustStorePassword=").append(trustPass);
-                }
-            }
-            if (p.isClientAuthRequired() && hasLength(p.getKeystore())) {
-                ssl.append("&keyStorePath=").append(p.getKeystore());
-                if (hasLength(p.getKeystorePassword())) {
-                    ssl.append("&keyStorePassword=").append(p.getKeystorePassword());
-                }
-            }
-            ssl.append('&');
-        }
 
         final StringJoiner urls = new StringJoiner(",");
         for (final String host : p.getHosts()) {
-            urls.add("tcp://" + host + ':' + p.getPort() + '?' + ssl + common);
+            urls.add("tcp://" + host + ':' + PORT + '?' + common);
         }
         return urls.toString();
     }

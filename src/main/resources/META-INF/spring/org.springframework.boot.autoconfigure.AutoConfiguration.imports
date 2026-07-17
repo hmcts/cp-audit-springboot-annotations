@@ -1,1 +1,2 @@
 uk.gov.hmcts.cp.audit.config.ArtemisAuditAutoConfiguration
+uk.gov.hmcts.cp.audit.config.ArtemisAuditDisabledConfiguration
