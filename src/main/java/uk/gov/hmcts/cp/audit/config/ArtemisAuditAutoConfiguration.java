@@ -125,18 +125,20 @@ public class ArtemisAuditAutoConfiguration {
         }
     }
 
-    private static String buildConnectionUrl(final AuditProperties p) {
+    static String buildConnectionUrl(final AuditProperties p) {
         final boolean ha = p.getHosts().size() > 1;
         final String common = String.join("&",
+                "sslEnabled=true",
+                "verifyHost=false",
                 "ha=" + ha,
-                "reconnectAttempts=" + RECONNECT_ATTEMPTS,
-                "initialConnectAttempts=" + INITIAL_CONNECT_ATTEMPTS,
-                "retryInterval=" + RETRY_INTERVAL_MS,
-                "retryIntervalMultiplier=" + RETRY_MULTIPLIER,
-                "maxRetryInterval=" + MAX_RETRY_INTERVAL_MS,
-                "connectionTtl=" + CONNECTION_TTL_MS,
-                "callTimeout=" + CALL_TIMEOUT_MS,
-                "failoverOnInitialConnection=" + ha
+                "reconnect_attempts=" + RECONNECT_ATTEMPTS,
+                "initial_connect_attempts=" + INITIAL_CONNECT_ATTEMPTS,
+                "retry_interval=" + RETRY_INTERVAL_MS,
+                "retry_interval_multiplier=" + RETRY_MULTIPLIER,
+                "max_retry_interval=" + MAX_RETRY_INTERVAL_MS,
+                "connection_ttl=" + CONNECTION_TTL_MS,
+                "call_timeout=" + CALL_TIMEOUT_MS,
+                "failover_on_initial_connection=" + ha
         );
 
         final StringJoiner urls = new StringJoiner(",");
