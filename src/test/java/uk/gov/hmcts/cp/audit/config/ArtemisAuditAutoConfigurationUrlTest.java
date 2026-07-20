@@ -1,12 +1,19 @@
 package uk.gov.hmcts.cp.audit.config;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ExtendWith(MockitoExtension.class)
 class ArtemisAuditAutoConfigurationUrlTest {
+
+    @InjectMocks
+    ArtemisAuditAutoConfiguration config;
 
     @Test
     void building_single_host_url_should_contain_ssl_and_snake_case_params() {
@@ -15,7 +22,7 @@ class ArtemisAuditAutoConfigurationUrlTest {
                 .hosts(List.of("artemis-broker.internal"))
                 .build();
 
-        final String url = ArtemisAuditAutoConfiguration.buildConnectionUrl(props);
+        final String url = config.buildConnectionUrl(props);
 
         assertThat(url)
                 .contains("tcp://artemis-broker.internal:61616")
@@ -36,7 +43,7 @@ class ArtemisAuditAutoConfigurationUrlTest {
                 .hosts(List.of("artemis-primary.internal", "artemis-secondary.internal"))
                 .build();
 
-        final String url = ArtemisAuditAutoConfiguration.buildConnectionUrl(props);
+        final String url = config.buildConnectionUrl(props);
 
         assertThat(url)
                 .contains("tcp://artemis-primary.internal:61616")

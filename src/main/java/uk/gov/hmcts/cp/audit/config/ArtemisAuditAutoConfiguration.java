@@ -117,7 +117,7 @@ public class ArtemisAuditAutoConfiguration {
         return reg;
     }
 
-    private static void validateProps(final AuditProperties p) {
+    private void validateProps(final AuditProperties p) {
         final List<String> hosts = p.getHosts();
         if (hosts == null || hosts.isEmpty()) {
             log.error("audit filter cp.audit.hosts must contain at least one broker host");
@@ -125,7 +125,7 @@ public class ArtemisAuditAutoConfiguration {
         }
     }
 
-    static String buildConnectionUrl(final AuditProperties p) {
+    public String buildConnectionUrl(final AuditProperties p) {
         final boolean ha = p.getHosts().size() > 1;
         final String common = String.join("&",
                 "sslEnabled=true",
