@@ -16,10 +16,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.Ordered;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import uk.gov.hmcts.cp.audit.AuditFilter;
-import uk.gov.hmcts.cp.audit.service.ArtemisConnectivityCheckService;
 import uk.gov.hmcts.cp.audit.service.AuditDecisionService;
 import uk.gov.hmcts.cp.audit.service.AuditPayloadGenerationService;
 import uk.gov.hmcts.cp.audit.service.AuditSenderService;
@@ -30,7 +28,6 @@ import java.util.StringJoiner;
 
 @Slf4j
 @AutoConfiguration
-@EnableScheduling
 @ConditionalOnClass(ActiveMQConnectionFactory.class)
 @ConditionalOnProperty(prefix = "cp.audit", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(AuditProperties.class)
@@ -106,11 +103,6 @@ public class ArtemisAuditAutoConfiguration {
     public AuditService auditService(final AuditPayloadGenerationService payloadService,
                                      final AuditSenderService senderService) {
         return new AuditService(payloadService, senderService);
-    }
-
-    @Bean
-    public ArtemisConnectivityCheckService artemisConnectivityCheckService(final AuditProperties properties) {
-        return new ArtemisConnectivityCheckService(properties);
     }
 
     @Bean
