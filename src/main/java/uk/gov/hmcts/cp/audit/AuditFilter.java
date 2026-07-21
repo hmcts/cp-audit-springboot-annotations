@@ -11,6 +11,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
+import uk.gov.hmcts.cp.audit.config.AuditProperties;
 import uk.gov.hmcts.cp.audit.model.AuditDecision;
 import uk.gov.hmcts.cp.audit.service.AuditDecisionService;
 import uk.gov.hmcts.cp.audit.service.AuditService;
@@ -25,6 +26,7 @@ public class AuditFilter extends OncePerRequestFilter {
     private final List<RequestMappingHandlerMapping> handlerMappings;
     private final AuditDecisionService decisionService;
     private final AuditService auditService;
+    private final AuditProperties properties;
 
     @Override
     protected void doFilterInternal(final HttpServletRequest request,
@@ -40,19 +42,31 @@ public class AuditFilter extends OncePerRequestFilter {
 
         switch (decision) {
             case AuditDecision.Block block -> {
-                log.error("Audit blocked request {} {}: {}",
-                        request.getMethod(),
-                        Encode.forJava(request.getRequestURI()),
-                        block.reason());
-                response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                log.error("Audit blocked request {} {}: {}", request.getMethod(), Encode.forJava(request.getRequestURI()), block.reason());
+                sendForbidden(response, block.reason());
             }
             case AuditDecision.Exclude ignored -> chain.doFilter(request, response);
             case AuditDecision.Audit audit -> {
-                auditService.auditRequest(request, audit.annotation(), audit.correlationId());
-                chain.doFilter(request, response);
-                auditService.auditResponse(request, audit.annotation(), audit.correlationId(), response.getStatus());
+                try {
+                    auditService.auditRequest(request, audit.annotation(), audit.correlationId());
+                    chain.doFilter(request, response);
+                    auditService.auditResponse(request, audit.annotation(), audit.correlationId(), response.getStatus());
+                } catch (final Exception e) {
+                    log.error("Audit failed for {} {}", audit.correlationId(), Encode.forJava(request.getRequestURI()), e);
+                    if (properties.isBlockOnFailure()) {
+                        sendForbidden(response, "Audit failure");
+                    } else {
+                        chain.doFilter(request, response);
+                    }
+                }
             }
         }
+    }
+
+    private void sendForbidden(final HttpServletResponse response, final String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType("text/plain");
+        response.getWriter().write(message);
     }
 
     private HandlerMethod resolveHandler(final HttpServletRequest request) {
