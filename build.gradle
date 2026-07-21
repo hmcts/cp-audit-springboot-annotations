@@ -59,5 +59,6 @@ dependencies {
         exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
     }
     testImplementation "org.springframework.boot:spring-boot-starter-web:$springBootVersion"
+    testImplementation "org.springframework.boot:spring-boot-webmvc-test:$springBootVersion"
     testRuntimeOnly    "org.junit.platform:junit-platform-launcher:$platformLauncher"
 }
