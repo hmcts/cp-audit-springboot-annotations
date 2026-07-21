@@ -33,12 +33,12 @@ public class AuditDecisionService {
 
         final String correlationId = resolveCorrelationId(request);
         if (correlationId == null || correlationId.isBlank()) {
-            return new AuditDecision.Block("Missing " + CORRELATION_HEADER);
+            return new AuditDecision.Block("Failed to find correlationId in header or MDC");
         }
         try {
             return new AuditDecision.Audit(detail, UUID.fromString(correlationId));
         } catch (final IllegalArgumentException e) {
-            log.error("{} value '{}' is not a valid UUID", CORRELATION_HEADER, Encode.forJava(correlationId));
+            log.error("Failed to parse correlationId as UUID:{}", Encode.forJava(correlationId));
             return new AuditDecision.Block(CORRELATION_HEADER + " is not a valid UUID");
         }
     }
