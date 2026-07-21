@@ -40,17 +40,19 @@ public class AuditFilter extends OncePerRequestFilter {
 
         switch (decision) {
             case AuditDecision.Block block -> {
-                log.error("Audit blocked request {} {}: {}",
-                        request.getMethod(),
-                        Encode.forJava(request.getRequestURI()),
-                        block.reason());
+                log.error("Audit blocked request {} {}: {}", request.getMethod(), Encode.forJava(request.getRequestURI()), block.reason());
                 response.sendError(HttpServletResponse.SC_FORBIDDEN);
             }
             case AuditDecision.Exclude ignored -> chain.doFilter(request, response);
             case AuditDecision.Audit audit -> {
-                auditService.auditRequest(request, audit.annotation(), audit.correlationId());
-                chain.doFilter(request, response);
-                auditService.auditResponse(request, audit.annotation(), audit.correlationId(), response.getStatus());
+                try {
+                    auditService.auditRequest(request, audit.annotation(), audit.correlationId());
+                    chain.doFilter(request, response);
+                    auditService.auditResponse(request, audit.annotation(), audit.correlationId(), response.getStatus());
+                } catch (final Exception e) {
+                    log.error("Audit failed for {} {}", audit.correlationId(), Encode.forJava(request.getRequestURI()), e);
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN);
+                }
             }
         }
     }

@@ -22,6 +22,7 @@ public class AuditSenderService {
             jmsTemplate.convertAndSend(AUDIT_TOPIC, json);
         } catch (final JsonProcessingException e) {
             log.error("Failed to serialize audit payload for event={}", payload.getMetadata().getEventName(), e);
+            throw new IllegalStateException("Failed to serialize audit payload", e);
         }
     }
 }

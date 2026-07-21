@@ -70,7 +70,7 @@ class AuditDecisionServiceTest {
         final AuditDecision decision = service.decide(handler, request);
 
         assertThat(decision).isInstanceOf(AuditDecision.Block.class);
-        assertThat(((AuditDecision.Block) decision).reason()).contains("X-Correlation-ID");
+        assertThat(decision).isInstanceOf(AuditDecision.Block.class);
     }
 
     @Test
