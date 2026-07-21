@@ -9,12 +9,17 @@ import uk.gov.hmcts.cp.audit.model.AuditMdcKeys;
 import uk.gov.hmcts.cp.audit.model.AuditMetadata;
 import uk.gov.hmcts.cp.audit.model.AuditPayload;
 
-import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
 public class AuditPayloadGenerationService {
+
+    private final ClockService clockService;
+
+    public AuditPayloadGenerationService(final ClockService clockService) {
+        this.clockService = clockService;
+    }
 
     public AuditPayload build(final HttpServletRequest request,
                               final AuditDetail annotation,
@@ -26,7 +31,7 @@ public class AuditPayloadGenerationService {
                         .origin(annotation.origin())
                         .component(annotation.component())
                         .eventName(annotation.eventName())
-                        .timestamp(Instant.now())
+                        .timestamp(clockService.now())
                         .build())
                 .eventType(eventType)
                 .action(annotation.action())
