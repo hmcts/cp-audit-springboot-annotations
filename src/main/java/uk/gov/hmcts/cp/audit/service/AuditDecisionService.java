@@ -3,6 +3,7 @@ package uk.gov.hmcts.cp.audit.service;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.owasp.encoder.Encode;
+import org.slf4j.MDC;
 import org.springframework.web.method.HandlerMethod;
 import uk.gov.hmcts.cp.audit.annotation.AuditDetail;
 import uk.gov.hmcts.cp.audit.annotation.AuditExclude;
@@ -13,7 +14,7 @@ import java.util.UUID;
 @Slf4j
 public class AuditDecisionService {
 
-    private static final String CORRELATION_HEADER = "X-Correlation-ID";
+    private static final String CORRELATION_HEADER = "X-Correlation-Id";
 
     public AuditDecision decide(final HandlerMethod handler, final HttpServletRequest request) {
         if (handler.hasMethodAnnotation(AuditExclude.class)
@@ -30,15 +31,25 @@ public class AuditDecisionService {
             return new AuditDecision.Block("No @AuditDetail annotation on handler");
         }
 
-        final String raw = request.getHeader(CORRELATION_HEADER);
-        if (raw == null || raw.isBlank()) {
-            return new AuditDecision.Block("Missing " + CORRELATION_HEADER + " header");
+        final String correlationId = resolveCorrelationId(request);
+        if (correlationId == null || correlationId.isBlank()) {
+            return new AuditDecision.Block("Failed to find correlationId in header or MDC");
         }
         try {
-            return new AuditDecision.Audit(detail, UUID.fromString(raw));
+            return new AuditDecision.Audit(detail, UUID.fromString(correlationId));
         } catch (final IllegalArgumentException e) {
-            log.error("{} value '{}' is not a valid UUID", CORRELATION_HEADER, Encode.forJava(raw));
+            log.error("Failed to parse correlationId as UUID:{}", Encode.forJava(correlationId));
             return new AuditDecision.Block(CORRELATION_HEADER + " is not a valid UUID");
         }
+    }
+
+    private String resolveCorrelationId(final HttpServletRequest request) {
+        if (request.getHeader(CORRELATION_HEADER) != null && !request.getHeader(CORRELATION_HEADER).isBlank()) {
+            return request.getHeader(CORRELATION_HEADER);
+        }
+        if (MDC.get(CORRELATION_HEADER) != null && !MDC.get(CORRELATION_HEADER).isBlank()) {
+            return MDC.get(CORRELATION_HEADER);
+        }
+        return null;
     }
 }
