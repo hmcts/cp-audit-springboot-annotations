@@ -70,7 +70,7 @@ class AuditFilterIntegrationTest {
     void calling_audited_endpoint_without_correlation_id_should_return_403() throws Exception {
         mockMvc.perform(get("/audited"))
                 .andExpect(status().isForbidden())
-                .andExpect(content().string("Missing X-Correlation-ID header"));
+                .andExpect(content().string("Failed to find correlationId in header or MDC"));
     }
 
     @Test
