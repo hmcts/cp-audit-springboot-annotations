@@ -3,6 +3,8 @@ package uk.gov.hmcts.cp.audit;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,6 +14,7 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import uk.gov.hmcts.cp.audit.annotation.AuditDetail;
+import uk.gov.hmcts.cp.audit.config.AuditProperties;
 import uk.gov.hmcts.cp.audit.model.AuditDecision;
 import uk.gov.hmcts.cp.audit.service.AuditDecisionService;
 import uk.gov.hmcts.cp.audit.service.AuditService;
@@ -20,6 +23,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -41,7 +45,15 @@ class AuditFilterTest {
 
     @BeforeEach
     void setUp() {
-        auditFilter = new AuditFilter(List.of(handlerMapping), decisionService, auditService);
+        auditFilter = new AuditFilter(List.of(handlerMapping), decisionService, auditService, blockingProperties());
+    }
+
+    private static AuditProperties blockingProperties() {
+        return AuditProperties.builder().enabled(true).blockOnFailure(true).hosts(List.of("localhost")).build();
+    }
+
+    private static AuditProperties nonBlockingProperties() {
+        return AuditProperties.builder().enabled(true).blockOnFailure(false).hosts(List.of("localhost")).build();
     }
 
     @Test
@@ -71,10 +83,11 @@ class AuditFilterTest {
         when(handlerMapping.getHandler(request)).thenReturn(executionChain);
         when(executionChain.getHandler()).thenReturn(handlerMethod);
         when(decisionService.decide(handlerMethod, request)).thenReturn(new AuditDecision.Block("missing header"));
+        when(response.getWriter()).thenReturn(new PrintWriter(new StringWriter()));
 
         auditFilter.doFilterInternal(request, response, chain);
 
-        verify(response).sendError(HttpServletResponse.SC_FORBIDDEN);
+        verify(response).setStatus(HttpServletResponse.SC_FORBIDDEN);
         verify(chain, never()).doFilter(any(), any());
     }
 
@@ -92,6 +105,22 @@ class AuditFilterTest {
         verify(chain).doFilter(request, response);
         verify(auditService).auditRequest(eq(request), eq(annotation), eq(correlationId));
         verify(auditService).auditResponse(eq(request), eq(annotation), eq(correlationId), eq(200));
+    }
+
+    @Test
+    void filtering_an_audited_request_with_block_on_failure_false_should_pass_through_on_audit_error() throws Exception {
+        final AuditFilter nonBlockingFilter = new AuditFilter(List.of(handlerMapping), decisionService, auditService, nonBlockingProperties());
+        final AuditDetail annotation = stubAuditDetail();
+        final UUID correlationId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        when(handlerMapping.getHandler(request)).thenReturn(executionChain);
+        when(executionChain.getHandler()).thenReturn(handlerMethod);
+        when(decisionService.decide(handlerMethod, request)).thenReturn(new AuditDecision.Audit(annotation, correlationId));
+        doThrow(new IllegalStateException("broker down")).when(auditService).auditRequest(any(), any(), any());
+
+        nonBlockingFilter.doFilterInternal(request, response, chain);
+
+        verify(chain).doFilter(request, response);
+        verify(response, never()).setStatus(HttpServletResponse.SC_FORBIDDEN);
     }
 
     private AuditDetail stubAuditDetail() {

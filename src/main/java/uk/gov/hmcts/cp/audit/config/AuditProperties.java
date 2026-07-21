@@ -12,5 +12,6 @@ import java.util.List;
 public class AuditProperties {
 
     private final boolean enabled;
+    private final boolean blockOnFailure;
     private final List<String> hosts;
 }
