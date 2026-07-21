@@ -97,6 +97,15 @@ class AuditFilterIntegrationTest {
                 .andExpect(content().string("Audit failure"));
     }
 
+    @Test
+    void artemis_unavailable_should_return_403() throws Exception {
+        doThrow(new RuntimeException("Artemis unavailable")).when(auditSenderService).send(any());
+
+        mockMvc.perform(get("/audited").header("X-Correlation-Id", CORRELATION_ID))
+                .andExpect(status().isForbidden())
+                .andExpect(content().string("Audit failure"));
+    }
+
     private String expectedRequest() {
         return """
                 {
