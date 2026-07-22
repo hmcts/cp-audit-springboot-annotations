@@ -22,7 +22,7 @@ import uk.gov.hmcts.cp.audit.service.AuditDecisionService;
 import uk.gov.hmcts.cp.audit.service.AuditPayloadGenerationService;
 import uk.gov.hmcts.cp.audit.service.AuditSenderService;
 import uk.gov.hmcts.cp.audit.service.AuditService;
-import uk.gov.hmcts.cp.audit.service.ClockService;
+import uk.gov.hmcts.cp.audit.service.AuditClockService;
 
 import java.util.List;
 import java.util.StringJoiner;
@@ -89,14 +89,13 @@ public class ArtemisAuditAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean(ClockService.class)
-    public ClockService clockService() {
-        return new ClockService();
+    public AuditClockService auditClockService() {
+        return new AuditClockService();
     }
 
     @Bean
-    public AuditPayloadGenerationService auditPayloadGenerationService(final ClockService clockService) {
-        return new AuditPayloadGenerationService(clockService);
+    public AuditPayloadGenerationService auditPayloadGenerationService(final AuditClockService auditClockService) {
+        return new AuditPayloadGenerationService(auditClockService);
     }
 
     @Bean

@@ -23,6 +23,9 @@ public class AuditSenderService {
         } catch (final JsonProcessingException e) {
             log.error("Failed to serialize audit payload for event={}", payload.getMetadata().getEventName(), e);
             throw new IllegalStateException("Failed to serialize audit payload", e);
+        } catch (final RuntimeException e) {
+            log.error("Failed to send audit payload to Artemis for event={}", payload.getMetadata().getEventName(), e);
+            throw new IllegalStateException("Failed to send audit payload to Artemis", e);
         }
     }
 }

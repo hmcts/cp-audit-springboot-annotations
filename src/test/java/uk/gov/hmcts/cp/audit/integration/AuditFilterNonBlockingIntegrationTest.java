@@ -9,7 +9,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.cp.audit.service.AuditSenderService;
-import uk.gov.hmcts.cp.audit.service.ClockService;
+import uk.gov.hmcts.cp.audit.service.AuditClockService;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -29,7 +29,7 @@ class AuditFilterNonBlockingIntegrationTest {
 
     @Autowired MockMvc mockMvc;
     @MockitoBean AuditSenderService auditSenderService;
-    @MockitoBean ClockService clockService;
+    @MockitoBean AuditClockService clockService;
 
     @Test
     void audit_sender_failure_with_block_on_failure_false_should_pass_through_and_return_200() throws Exception {

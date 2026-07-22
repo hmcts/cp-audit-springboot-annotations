@@ -18,7 +18,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.cp.audit.model.AuditPayload;
 import uk.gov.hmcts.cp.audit.service.AuditSenderService;
-import uk.gov.hmcts.cp.audit.service.ClockService;
+import uk.gov.hmcts.cp.audit.service.AuditClockService;
 
 import java.time.Instant;
 import java.util.List;
@@ -46,7 +46,7 @@ class AuditFilterIntegrationTest {
 
     @Autowired MockMvc mockMvc;
     @MockitoBean AuditSenderService auditSenderService;
-    @MockitoBean ClockService clockService;
+    @MockitoBean AuditClockService clockService;
     @Captor ArgumentCaptor<AuditPayload> payloadCaptor;
 
     @BeforeEach
@@ -91,6 +91,15 @@ class AuditFilterIntegrationTest {
     @Test
     void audit_sender_failure_should_return_403() throws Exception {
         doThrow(new IllegalStateException("broker down")).when(auditSenderService).send(any());
+
+        mockMvc.perform(get("/audited").header("X-Correlation-Id", CORRELATION_ID))
+                .andExpect(status().isForbidden())
+                .andExpect(content().string("Audit failure"));
+    }
+
+    @Test
+    void artemis_unavailable_should_return_403() throws Exception {
+        doThrow(new RuntimeException("Artemis unavailable")).when(auditSenderService).send(any());
 
         mockMvc.perform(get("/audited").header("X-Correlation-Id", CORRELATION_ID))
                 .andExpect(status().isForbidden())
