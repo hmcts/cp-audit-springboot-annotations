@@ -123,6 +123,30 @@ cp:
 
 ## How It Works
 
+```mermaid
+flowchart TD
+    REQ([HTTP Request]) --> AF
+
+    AF["AuditFilter\nresolves HandlerMethod"]
+    AF --> DS
+
+    DS["AuditDecisionService\n@AuditDetail / @AuditExclude?\nX-Correlation-Id: header → MDC fallback"]
+    MDC[/"MDC\nX-Correlation-Id\nmaterialId · caseId · hearingId"/] -.-> DS
+
+    DS -->|Exclude| PT([Pass Through\n@AuditExclude])
+    DS -->|Block| F1([403 Forbidden\nmissing annotation or id])
+    DS -->|Audit| AS
+
+    AS["AuditService\nauditRequest → chain.doFilter → auditResponse\nAuditPayloadGenerationService + AuditClockService"]
+    AS --> SS
+
+    SS["AuditSenderService\nserialize → jmsTemplate.convertAndSend()"]
+    SS -->|success| ART[(ActiveMQ Artemis\njms.topic.auditing.event)]
+    SS -->|failure| BF{"block-on-failure"}
+    BF -->|true| F2([403 Forbidden])
+    BF -->|false| LOG([log error\npass through])
+```
+
 `ArtemisAuditAutoConfiguration` creates:
 
 - `ActiveMQConnectionFactory` with HA URL and hard-coded connection tuning (port 61616, infinite reconnect, exponential back-off).
