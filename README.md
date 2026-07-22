@@ -123,6 +123,34 @@ cp:
 
 ## How It Works
 
+## Filter Order
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant TF as TracingFilter<br/>HIGHEST_PRECEDENCE
+    participant AF as AuthFilter
+    participant AUD as AuditFilter<br/>LOWEST_PRECEDENCE-100
+    participant CTL as Controller
+
+    C->>TF: HTTP Request
+    TF->>TF: put X-Correlation-Id → MDC
+    TF->>AF: chain.doFilter()
+    AF->>AF: authenticate / authorise
+    AF->>AUD: chain.doFilter()
+    AUD->>AUD: auditRequest()
+    AUD->>CTL: chain.doFilter()
+    CTL-->>AUD: response
+    AUD->>AUD: auditResponse()
+    AUD-->>AF: 
+    AF-->>TF: 
+    TF-->>C: HTTP Response
+```
+
+---
+
+## Request Flow
+
 ```mermaid
 flowchart TD
     REQ([HTTP Request]) --> AF
