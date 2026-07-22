@@ -4,8 +4,8 @@ A drop-in Spring Boot **starter** that audits REST endpoints via controller anno
 publishing structured audit events to **ActiveMQ Artemis**.
 
 Endpoints are opted in with `@AuditDetail` and opted out with `@AuditExclude`.
-Unannotated endpoints are **blocked by default** (403). The `X-Correlation-ID` header is
-required on every audited request.
+Unannotated endpoints are **blocked by default** (403). `X-Correlation-Id` is resolved from
+the request header first, then from MDC (set by a tracing filter upstream).
 
 ---
 
@@ -14,7 +14,8 @@ required on every audited request.
 - **Annotation-driven**: no OpenAPI spec, no path-param extraction config.
 - **Zero component scanning**: all beans created via a single `@AutoConfiguration`.
 - **Blocks by default**: unannotated endpoints return 403 until explicitly annotated.
-- **MDC-aware**: domain IDs (`materialId`, `caseId`, etc.) are read from MDC at response time.
+- **MDC-aware**: `X-Correlation-Id` and domain IDs (`materialId`, `caseId`, etc.) are read from MDC.
+- **Non-blocking mode**: set `cp.audit.block-on-failure=false` to log and pass through on Artemis failure.
 - **Active–Passive Artemis HA** auto-detected from host count.
 
 ---
@@ -91,10 +92,11 @@ public class DocumentController {
 }
 ```
 
-### 3) Set the `X-Correlation-ID` header
+### 3) Set the `X-Correlation-Id` header
 
-Every audited request must carry `X-Correlation-ID` (typically set upstream by a tracing filter).
-Requests without it are blocked with 403.
+`X-Correlation-Id` is resolved from the request header first, then from MDC — so if your
+tracing filter (e.g. `TracingFilter` with `@Order(HIGHEST_PRECEDENCE)`) puts it in MDC,
+clients do not need to set it explicitly. Requests where it cannot be found in either are blocked with 403.
 
 ### 4) Populate MDC for domain IDs (optional)
 
@@ -121,6 +123,30 @@ cp:
 
 ## How It Works
 
+```mermaid
+flowchart TD
+    REQ([HTTP Request]) --> AF
+
+    AF["AuditFilter\nresolves HandlerMethod"]
+    AF --> DS
+
+    DS["AuditDecisionService\n@AuditDetail / @AuditExclude?\nX-Correlation-Id: header → MDC fallback"]
+    MDC[/"MDC\nX-Correlation-Id\nmaterialId · caseId · hearingId"/] -.-> DS
+
+    DS -->|Exclude| PT([Pass Through\n@AuditExclude])
+    DS -->|Block| F1([403 Forbidden\nmissing annotation or id])
+    DS -->|Audit| AS
+
+    AS["AuditService\nauditRequest → chain.doFilter → auditResponse\nAuditPayloadGenerationService + AuditClockService"]
+    AS --> SS
+
+    SS["AuditSenderService\nserialize → jmsTemplate.convertAndSend()"]
+    SS -->|success| ART[(ActiveMQ Artemis\njms.topic.auditing.event)]
+    SS -->|failure| BF{"block-on-failure"}
+    BF -->|true| F2([403 Forbidden])
+    BF -->|false| LOG([log error\npass through])
+```
+
 `ArtemisAuditAutoConfiguration` creates:
 
 - `ActiveMQConnectionFactory` with HA URL and hard-coded connection tuning (port 61616, infinite reconnect, exponential back-off).
@@ -137,8 +163,8 @@ cp:
 | Condition | Outcome |
 |---|---|
 | Method/class annotated `@AuditExclude` | Pass through, no audit |
-| Method/class annotated `@AuditDetail`, `X-Correlation-ID` present | Audit request + response |
-| Method/class annotated `@AuditDetail`, `X-Correlation-ID` missing | 403 |
+| Method/class annotated `@AuditDetail`, `X-Correlation-Id` in header or MDC | Audit request + response |
+| Method/class annotated `@AuditDetail`, `X-Correlation-Id` missing from both | 403 |
 | No annotation | 403 |
 
 ---
@@ -162,6 +188,7 @@ cp:
 | Property | Type | Default | Purpose |
 |---|---|---|---|
 | `cp.audit.enabled` | boolean | `true` | Set `false` to disable auditing (e.g. in tests). A `WARN` is logged on startup when disabled. |
+| `cp.audit.block-on-failure` | boolean | `true` | Set `false` to log and pass through on Artemis failure instead of returning 403. Useful in environments where the broker may be flaky. |
 | `cp.audit.hosts` | list\<string\> | *(required)* | One or more Artemis broker hostnames. Two hosts enables HA automatically. |
 
 All other connection parameters (port, credentials, SSL, retries, timeouts) are hard-coded in
@@ -206,6 +233,33 @@ HA is enabled automatically when two hosts are provided.
 
 ## Testing Guidance
 
+### Required test configuration
+
+The starter requires `cp.audit.hosts` to be set or it will throw on startup.
+
+**`src/test/resources/application.properties`** — add a dummy host and exclude conflicting JMS auto-config:
+
+```properties
+cp.audit.hosts=localhost
+spring.autoconfigure.exclude=org.springframework.boot.jms.autoconfigure.JmsAutoConfiguration,org.springframework.boot.jms.autoconfigure.ArtemisAutoConfiguration
+```
+
+The `spring.autoconfigure.exclude` prevents Spring Boot's own JMS auto-configuration from
+conflicting with the starter's `auditConnectionFactory` bean.
+
+**Helm values** — set the real broker hosts for each environment:
+
+```yaml
+java:
+  environment:
+    CP_AUDIT_HOSTS_0: artemis-primary.internal
+    CP_AUDIT_HOSTS_1: artemis-secondary.internal   # optional — enables HA
+```
+
+These map to `cp.audit.hosts[0]` and `cp.audit.hosts[1]` via Spring Boot's relaxed binding.
+
+### Mocking the sender
+
 Mock `AuditSenderService` to verify audit events without a real broker:
 
 ```java
@@ -219,7 +273,7 @@ class MyControllerAuditTest {
     @Test
     void annotated_endpoint_should_produce_two_audit_events() throws Exception {
         mockMvc.perform(get("/my-endpoint/123")
-                .header("X-Correlation-ID", "00000000-0000-0000-0000-000000000001"))
+                .header("X-Correlation-Id", "00000000-0000-0000-0000-000000000001"))
                 .andExpect(status().isOk());
 
         verify(auditSenderService, times(2)).send(any());
