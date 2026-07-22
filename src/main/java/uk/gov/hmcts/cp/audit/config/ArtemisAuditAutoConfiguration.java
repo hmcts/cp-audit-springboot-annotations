@@ -119,7 +119,7 @@ public class ArtemisAuditAutoConfiguration {
             final AuditProperties properties) {
         final AuditFilter filter = new AuditFilter(handlerMappings, decisionService, auditService, properties);
         final FilterRegistrationBean<AuditFilter> reg = new FilterRegistrationBean<>(filter);
-        reg.setOrder(Ordered.LOWEST_PRECEDENCE - 100);
+        reg.setOrder(Ordered.HIGHEST_PRECEDENCE + 10);
         reg.addUrlPatterns("/*");
         return reg;
     }
