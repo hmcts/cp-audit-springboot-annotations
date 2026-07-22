@@ -15,9 +15,9 @@ import java.util.UUID;
 
 public class AuditPayloadGenerationService {
 
-    private final ClockService clockService;
+    private final AuditClockService clockService;
 
-    public AuditPayloadGenerationService(final ClockService clockService) {
+    public AuditPayloadGenerationService(final AuditClockService clockService) {
         this.clockService = clockService;
     }
 

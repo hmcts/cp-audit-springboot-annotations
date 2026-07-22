@@ -18,7 +18,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.cp.audit.model.AuditPayload;
 import uk.gov.hmcts.cp.audit.service.AuditSenderService;
-import uk.gov.hmcts.cp.audit.service.ClockService;
+import uk.gov.hmcts.cp.audit.service.AuditClockService;
 
 import java.time.Instant;
 import java.util.List;
@@ -46,7 +46,7 @@ class AuditFilterIntegrationTest {
 
     @Autowired MockMvc mockMvc;
     @MockitoBean AuditSenderService auditSenderService;
-    @MockitoBean ClockService clockService;
+    @MockitoBean AuditClockService clockService;
     @Captor ArgumentCaptor<AuditPayload> payloadCaptor;
 
     @BeforeEach
