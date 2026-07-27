@@ -18,12 +18,9 @@ import java.util.UUID;
 public class AuditPayloadGenerationService {
 
     private final AuditClockService clockService;
-    private final AuditUuidService uuidService;
 
-    public AuditPayloadGenerationService(final AuditClockService clockService,
-                                         final AuditUuidService uuidService) {
+    public AuditPayloadGenerationService(final AuditClockService clockService) {
         this.clockService = clockService;
-        this.uuidService = uuidService;
     }
 
     public AuditMessage build(final HttpServletRequest request,

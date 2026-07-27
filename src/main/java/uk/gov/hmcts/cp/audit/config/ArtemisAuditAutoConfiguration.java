@@ -100,9 +100,8 @@ public class ArtemisAuditAutoConfiguration {
     }
 
     @Bean
-    public AuditPayloadGenerationService auditPayloadGenerationService(final AuditClockService auditClockService,
-                                                                       final AuditUuidService auditUuidService) {
-        return new AuditPayloadGenerationService(auditClockService, auditUuidService);
+    public AuditPayloadGenerationService auditPayloadGenerationService(final AuditClockService auditClockService) {
+        return new AuditPayloadGenerationService(auditClockService);
     }
 
     @Bean
