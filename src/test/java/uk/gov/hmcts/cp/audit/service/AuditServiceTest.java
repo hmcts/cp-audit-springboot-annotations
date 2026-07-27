@@ -8,10 +8,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import uk.gov.hmcts.cp.audit.annotation.AuditDetail;
 import uk.gov.hmcts.cp.audit.model.AuditEventType;
-import uk.gov.hmcts.cp.audit.model.AuditMetadata;
-import uk.gov.hmcts.cp.audit.model.AuditPayload;
+import uk.gov.hmcts.cp.audit.model.AuditMessage;
 
-import java.time.Instant;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.eq;
@@ -21,10 +19,12 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AuditServiceTest {
 
-    private static final UUID CORRELATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    private static final String CORRELATION_ID = "00000000-0000-0000-0000-000000000001";
+    private static final UUID METADATA_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
     @Mock private AuditPayloadGenerationService payloadService;
     @Mock private AuditSenderService senderService;
+    @Mock private AuditUuidService uuidService;
     @Mock private HttpServletRequest request;
 
     @InjectMocks
@@ -33,33 +33,34 @@ class AuditServiceTest {
     @Test
     void auditing_a_request_should_build_request_event_and_send() {
         final AuditDetail annotation = StubController.class.getAnnotation(AuditDetail.class);
-        final AuditPayload payload = stubPayload(AuditEventType.REQUEST);
-        when(payloadService.build(request, annotation, CORRELATION_ID, AuditEventType.REQUEST, null)).thenReturn(payload);
+        final AuditMessage message = stubMessage();
+        when(payloadService.build(request, annotation, CORRELATION_ID, METADATA_ID, AuditEventType.REQUEST, null))
+                .thenReturn(message);
 
-        service.auditRequest(request, annotation, CORRELATION_ID);
+        service.auditRequest(request, annotation, CORRELATION_ID, METADATA_ID);
 
-        verify(payloadService).build(request, annotation, CORRELATION_ID, AuditEventType.REQUEST, null);
-        verify(senderService).send(payload);
+        verify(payloadService).build(request, annotation, CORRELATION_ID, METADATA_ID, AuditEventType.REQUEST, null);
+        verify(senderService).send(message);
     }
 
     @Test
     void auditing_a_response_should_build_response_event_with_status_and_send() {
         final AuditDetail annotation = StubController.class.getAnnotation(AuditDetail.class);
-        final AuditPayload payload = stubPayload(AuditEventType.RESPONSE);
-        when(payloadService.build(eq(request), eq(annotation), eq(CORRELATION_ID), eq(AuditEventType.RESPONSE), eq(200)))
-                .thenReturn(payload);
+        final AuditMessage message = stubMessage();
+        when(payloadService.build(eq(request), eq(annotation), eq(CORRELATION_ID), eq(METADATA_ID),
+                eq(AuditEventType.RESPONSE), eq(200))).thenReturn(message);
 
-        service.auditResponse(request, annotation, CORRELATION_ID, 200);
+        service.auditResponse(request, annotation, CORRELATION_ID, METADATA_ID, 200);
 
-        verify(payloadService).build(request, annotation, CORRELATION_ID, AuditEventType.RESPONSE, 200);
-        verify(senderService).send(payload);
+        verify(payloadService).build(request, annotation, CORRELATION_ID, METADATA_ID, AuditEventType.RESPONSE, 200);
+        verify(senderService).send(message);
     }
 
-    private static AuditPayload stubPayload(final AuditEventType type) {
-        return AuditPayload.builder()
-                .metadata(AuditMetadata.builder()
-                        .origin("o").component("c").eventName("e").timestamp(Instant.now()).build())
-                .eventType(type)
+    private static AuditMessage stubMessage() {
+        return AuditMessage.builder()
+                .origin("o")
+                .component("c")
+                .content(null)
                 .build();
     }
 

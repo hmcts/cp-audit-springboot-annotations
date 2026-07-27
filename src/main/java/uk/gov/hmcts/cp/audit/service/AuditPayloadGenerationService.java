@@ -4,8 +4,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.MDC;
 import org.springframework.web.servlet.HandlerMapping;
 import uk.gov.hmcts.cp.audit.annotation.AuditDetail;
+import uk.gov.hmcts.cp.audit.model.AuditContext;
 import uk.gov.hmcts.cp.audit.model.AuditEventType;
 import uk.gov.hmcts.cp.audit.model.AuditMdcKeys;
+import uk.gov.hmcts.cp.audit.model.AuditMessage;
 import uk.gov.hmcts.cp.audit.model.AuditMetadata;
 import uk.gov.hmcts.cp.audit.model.AuditPayload;
 
@@ -16,23 +18,28 @@ import java.util.UUID;
 public class AuditPayloadGenerationService {
 
     private final AuditClockService clockService;
+    private final AuditUuidService uuidService;
 
-    public AuditPayloadGenerationService(final AuditClockService clockService) {
+    public AuditPayloadGenerationService(final AuditClockService clockService,
+                                         final AuditUuidService uuidService) {
         this.clockService = clockService;
+        this.uuidService = uuidService;
     }
 
-    public AuditPayload build(final HttpServletRequest request,
+    public AuditMessage build(final HttpServletRequest request,
                               final AuditDetail annotation,
-                              final UUID correlationId,
+                              final String correlationId,
+                              final UUID metadataId,
                               final AuditEventType eventType,
                               final Integer responseStatus) {
-        return AuditPayload.builder()
-                .metadata(AuditMetadata.builder()
-                        .origin(annotation.origin())
-                        .component(annotation.component())
-                        .eventName(annotation.eventName())
-                        .timestamp(clockService.now())
-                        .build())
+        final AuditMetadata metadata = AuditMetadata.builder()
+                .id(metadataId)
+                .name(annotation.eventName())
+                .context(new AuditContext(null))
+                .build();
+
+        final AuditPayload content = AuditPayload.builder()
+                .metadata(metadata)
                 .eventType(eventType)
                 .action(annotation.action())
                 .correlationId(correlationId)
@@ -42,6 +49,13 @@ public class AuditPayloadGenerationService {
                 .hearingId(uuidFromMdc(AuditMdcKeys.HEARING_ID))
                 .courtDocumentId(uuidFromMdc(AuditMdcKeys.COURT_DOCUMENT_ID))
                 .pathParams(extractPathParams(request, annotation))
+                .build();
+
+        return AuditMessage.builder()
+                .origin(annotation.origin())
+                .component(annotation.component())
+                .timestamp(clockService.now())
+                .content(content)
                 .build();
     }
 

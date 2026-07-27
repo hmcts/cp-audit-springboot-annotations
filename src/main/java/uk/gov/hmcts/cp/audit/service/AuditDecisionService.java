@@ -2,14 +2,11 @@ package uk.gov.hmcts.cp.audit.service;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.owasp.encoder.Encode;
 import org.slf4j.MDC;
 import org.springframework.web.method.HandlerMethod;
 import uk.gov.hmcts.cp.audit.annotation.AuditDetail;
 import uk.gov.hmcts.cp.audit.annotation.AuditExclude;
 import uk.gov.hmcts.cp.audit.model.AuditDecision;
-
-import java.util.UUID;
 
 @Slf4j
 public class AuditDecisionService {
@@ -35,12 +32,7 @@ public class AuditDecisionService {
         if (correlationId == null || correlationId.isBlank()) {
             return new AuditDecision.Block("Failed to find correlationId in header or MDC");
         }
-        try {
-            return new AuditDecision.Audit(detail, UUID.fromString(correlationId));
-        } catch (final IllegalArgumentException e) {
-            log.error("Failed to parse correlationId as UUID:{}", Encode.forJava(correlationId));
-            return new AuditDecision.Block(CORRELATION_HEADER + " is not a valid UUID");
-        }
+        return new AuditDecision.Audit(detail, correlationId);
     }
 
     private String resolveCorrelationId(final HttpServletRequest request) {
