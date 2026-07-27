@@ -39,7 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class AuditFilterIntegrationTest {
 
-    private static final String CORRELATION_ID = "00000000-0000-0000-0000-000000000001";
+    private static final UUID CORRELATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private static final UUID METADATA_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
     private static final ObjectMapper MAPPER = new ObjectMapper()

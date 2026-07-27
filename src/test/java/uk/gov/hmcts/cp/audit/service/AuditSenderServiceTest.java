@@ -50,7 +50,7 @@ class AuditSenderServiceTest {
                                 .build())
                         .eventType(AuditEventType.REQUEST)
                         .action("View")
-                        .correlationId("00000000-0000-0000-0000-000000000123")
+                        .correlationId(UUID.fromString("00000000-0000-0000-0000-000000000123"))
                         .build())
                 .build();
 

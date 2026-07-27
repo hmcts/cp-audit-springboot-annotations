@@ -19,7 +19,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AuditServiceTest {
 
-    private static final String CORRELATION_ID = "00000000-0000-0000-0000-000000000001";
+    private static final UUID CORRELATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private static final UUID METADATA_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
     @Mock private AuditPayloadGenerationService payloadService;

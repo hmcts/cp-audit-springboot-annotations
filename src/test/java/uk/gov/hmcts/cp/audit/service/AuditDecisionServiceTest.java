@@ -13,6 +13,8 @@ import uk.gov.hmcts.cp.audit.model.AuditDecision;
 
 import org.slf4j.MDC;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -79,28 +81,27 @@ class AuditDecisionServiceTest {
         when(handler.getBeanType()).thenAnswer(inv -> UnannotatedController.class);
         final AuditDetail annotation = AuditedController.class.getAnnotation(AuditDetail.class);
         when(handler.getMethodAnnotation(AuditDetail.class)).thenReturn(annotation);
-        final String correlationId = "00000000-0000-0000-0000-0000000000ab";
-        when(request.getHeader("X-Correlation-Id")).thenReturn(correlationId);
+        final UUID expectedId = UUID.fromString("00000000-0000-0000-0000-0000000000ab");
+        when(request.getHeader("X-Correlation-Id")).thenReturn(expectedId.toString());
 
         final AuditDecision decision = service.decide(handler, request);
 
         assertThat(decision).isInstanceOf(AuditDecision.Audit.class);
-        assertThat(((AuditDecision.Audit) decision).correlationId()).isEqualTo(correlationId);
+        assertThat(((AuditDecision.Audit) decision).correlationId()).isEqualTo(expectedId);
         assertThat(((AuditDecision.Audit) decision).annotation()).isSameAs(annotation);
     }
 
     @Test
-    void deciding_on_an_audited_handler_with_non_uuid_correlation_id_should_still_return_audit() {
+    void deciding_on_an_audited_handler_with_non_uuid_correlation_id_should_return_block() {
         when(handler.hasMethodAnnotation(AuditExclude.class)).thenReturn(false);
         when(handler.getBeanType()).thenAnswer(inv -> UnannotatedController.class);
-        final AuditDetail annotation = AuditedController.class.getAnnotation(AuditDetail.class);
-        when(handler.getMethodAnnotation(AuditDetail.class)).thenReturn(annotation);
+        when(handler.getMethodAnnotation(AuditDetail.class))
+                .thenReturn(AuditedController.class.getAnnotation(AuditDetail.class));
         when(request.getHeader("X-Correlation-Id")).thenReturn("not-a-uuid");
 
         final AuditDecision decision = service.decide(handler, request);
 
-        assertThat(decision).isInstanceOf(AuditDecision.Audit.class);
-        assertThat(((AuditDecision.Audit) decision).correlationId()).isEqualTo("not-a-uuid");
+        assertThat(decision).isInstanceOf(AuditDecision.Block.class);
     }
 
     @Test
@@ -110,14 +111,14 @@ class AuditDecisionServiceTest {
         final AuditDetail annotation = AuditedController.class.getAnnotation(AuditDetail.class);
         when(handler.getMethodAnnotation(AuditDetail.class)).thenReturn(annotation);
         when(request.getHeader("X-Correlation-Id")).thenReturn(null);
-        final String correlationId = "00000000-0000-0000-0000-0000000000cd";
-        MDC.put("X-Correlation-Id", correlationId);
+        final UUID expectedId = UUID.fromString("00000000-0000-0000-0000-0000000000cd");
+        MDC.put("X-Correlation-Id", expectedId.toString());
 
         try {
             final AuditDecision decision = service.decide(handler, request);
 
             assertThat(decision).isInstanceOf(AuditDecision.Audit.class);
-            assertThat(((AuditDecision.Audit) decision).correlationId()).isEqualTo(correlationId);
+            assertThat(((AuditDecision.Audit) decision).correlationId()).isEqualTo(expectedId);
         } finally {
             MDC.remove("X-Correlation-Id");
         }

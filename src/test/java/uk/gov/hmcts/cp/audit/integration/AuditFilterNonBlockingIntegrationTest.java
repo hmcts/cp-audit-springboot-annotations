@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class AuditFilterNonBlockingIntegrationTest {
 
-    private static final String CORRELATION_ID = "00000000-0000-0000-0000-000000000001";
+    private static final UUID CORRELATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
     @Autowired MockMvc mockMvc;
     @MockitoBean AuditSenderService auditSenderService;

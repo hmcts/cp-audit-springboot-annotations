@@ -23,7 +23,7 @@ public class AuditService {
 
     public void auditRequest(final HttpServletRequest request,
                              final AuditDetail annotation,
-                             final String correlationId,
+                             final UUID correlationId,
                              final UUID metadataId) {
         final AuditMessage message = payloadService.build(request, annotation, correlationId, metadataId, AuditEventType.REQUEST, null);
         log.info("Sending audit REQUEST payload for correlationId:{}", correlationId);
@@ -32,7 +32,7 @@ public class AuditService {
 
     public void auditResponse(final HttpServletRequest request,
                               final AuditDetail annotation,
-                              final String correlationId,
+                              final UUID correlationId,
                               final UUID metadataId,
                               final int responseStatus) {
         final AuditMessage message = payloadService.build(request, annotation, correlationId, metadataId, AuditEventType.RESPONSE, responseStatus);

@@ -94,7 +94,7 @@ class AuditFilterTest {
     @Test
     void filtering_an_audited_request_should_send_request_and_response_audit_events() throws Exception {
         final AuditDetail annotation = stubAuditDetail();
-        final String correlationId = "00000000-0000-0000-0000-000000000001";
+        final UUID correlationId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         final UUID metadataId = UUID.fromString("00000000-0000-0000-0000-000000000002");
         when(handlerMapping.getHandler(request)).thenReturn(executionChain);
         when(executionChain.getHandler()).thenReturn(handlerMethod);
@@ -113,7 +113,7 @@ class AuditFilterTest {
     void filtering_an_audited_request_with_block_on_failure_false_should_pass_through_on_audit_error() throws Exception {
         final AuditFilter nonBlockingFilter = new AuditFilter(List.of(handlerMapping), decisionService, auditService, nonBlockingProperties());
         final AuditDetail annotation = stubAuditDetail();
-        final String correlationId = "00000000-0000-0000-0000-000000000001";
+        final UUID correlationId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         final UUID metadataId = UUID.fromString("00000000-0000-0000-0000-000000000002");
         when(handlerMapping.getHandler(request)).thenReturn(executionChain);
         when(executionChain.getHandler()).thenReturn(handlerMethod);
