@@ -16,9 +16,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import uk.gov.hmcts.cp.audit.model.AuditPayload;
-import uk.gov.hmcts.cp.audit.service.AuditSenderService;
+import uk.gov.hmcts.cp.audit.model.AuditMessage;
 import uk.gov.hmcts.cp.audit.service.AuditClockService;
+import uk.gov.hmcts.cp.audit.service.AuditSenderService;
+import uk.gov.hmcts.cp.audit.service.AuditUuidService;
 
 import java.time.Instant;
 import java.util.List;
@@ -40,6 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuditFilterIntegrationTest {
 
     private static final UUID CORRELATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    private static final UUID METADATA_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .registerModule(new JavaTimeModule())
@@ -48,11 +50,13 @@ class AuditFilterIntegrationTest {
     @Autowired MockMvc mockMvc;
     @MockitoBean AuditSenderService auditSenderService;
     @MockitoBean AuditClockService clockService;
-    @Captor ArgumentCaptor<AuditPayload> payloadCaptor;
+    @MockitoBean AuditUuidService auditUuidService;
+    @Captor ArgumentCaptor<AuditMessage> messageCaptor;
 
     @BeforeEach
     void setUp() {
         when(clockService.now()).thenReturn(NOW);
+        when(auditUuidService.randomUUID()).thenReturn(METADATA_ID);
     }
 
     @Test
@@ -60,11 +64,11 @@ class AuditFilterIntegrationTest {
         mockMvc.perform(get("/audited").header("X-Correlation-Id", CORRELATION_ID))
                 .andExpect(status().isOk());
 
-        verify(auditSenderService, times(2)).send(payloadCaptor.capture());
-        final List<AuditPayload> payloads = payloadCaptor.getAllValues();
+        verify(auditSenderService, times(2)).send(messageCaptor.capture());
+        final List<AuditMessage> messages = messageCaptor.getAllValues();
 
-        JSONAssert.assertEquals(expectedRequest(), MAPPER.writeValueAsString(payloads.get(0)), JSONCompareMode.LENIENT);
-        JSONAssert.assertEquals(expectedResponse(), MAPPER.writeValueAsString(payloads.get(1)), JSONCompareMode.LENIENT);
+        JSONAssert.assertEquals(expectedRequest(), MAPPER.writeValueAsString(messages.get(0)), JSONCompareMode.LENIENT);
+        JSONAssert.assertEquals(expectedResponse(), MAPPER.writeValueAsString(messages.get(1)), JSONCompareMode.LENIENT);
     }
 
     @Test
@@ -125,21 +129,25 @@ class AuditFilterIntegrationTest {
     private String expectedRequest() {
         return """
                 {
-                  "_metadata": {
-                    "origin":    "hearing-results-document",
-                    "component": "QUERY_API",
-                    "eventName": "test.audited",
-                    "timestamp": "2026-01-01T00:00:00Z"
-                  },
-                  "eventType":      "REQUEST",
-                  "action":         "View",
-                  "correlationId":  "00000000-0000-0000-0000-000000000001",
-                  "responseStatus": null,
-                  "materialId":     null,
-                  "caseId":         null,
-                  "hearingId":      null,
-                  "courtDocumentId": null,
-                  "pathParams":     {}
+                  "origin":    "hearing-results-document",
+                  "component": "QUERY_API",
+                  "timestamp": "2026-01-01T00:00:00Z",
+                  "content": {
+                    "_metadata": {
+                      "id":   "00000000-0000-0000-0000-000000000002",
+                      "name": "test.audited",
+                      "context": { "user": null }
+                    },
+                    "eventType":      "REQUEST",
+                    "action":         "View",
+                    "correlationId":  "00000000-0000-0000-0000-000000000001",
+                    "responseStatus": null,
+                    "materialId":     null,
+                    "caseId":         null,
+                    "hearingId":      null,
+                    "courtDocumentId": null,
+                    "pathParams":     {}
+                  }
                 }
                 """;
     }
@@ -147,21 +155,25 @@ class AuditFilterIntegrationTest {
     private String expectedResponse() {
         return """
                 {
-                  "_metadata": {
-                    "origin":    "hearing-results-document",
-                    "component": "QUERY_API",
-                    "eventName": "test.audited",
-                    "timestamp": "2026-01-01T00:00:00Z"
-                  },
-                  "eventType":      "RESPONSE",
-                  "action":         "View",
-                  "correlationId":  "00000000-0000-0000-0000-000000000001",
-                  "responseStatus": 200,
-                  "materialId":     null,
-                  "caseId":         null,
-                  "hearingId":      null,
-                  "courtDocumentId": null,
-                  "pathParams":     {}
+                  "origin":    "hearing-results-document",
+                  "component": "QUERY_API",
+                  "timestamp": "2026-01-01T00:00:00Z",
+                  "content": {
+                    "_metadata": {
+                      "id":   "00000000-0000-0000-0000-000000000002",
+                      "name": "test.audited",
+                      "context": { "user": null }
+                    },
+                    "eventType":      "RESPONSE",
+                    "action":         "View",
+                    "correlationId":  "00000000-0000-0000-0000-000000000001",
+                    "responseStatus": 200,
+                    "materialId":     null,
+                    "caseId":         null,
+                    "hearingId":      null,
+                    "courtDocumentId": null,
+                    "pathParams":     {}
+                  }
                 }
                 """;
     }

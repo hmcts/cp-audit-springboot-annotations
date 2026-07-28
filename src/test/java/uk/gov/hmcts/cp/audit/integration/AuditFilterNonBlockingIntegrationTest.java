@@ -8,8 +8,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import uk.gov.hmcts.cp.audit.service.AuditSenderService;
 import uk.gov.hmcts.cp.audit.service.AuditClockService;
+import uk.gov.hmcts.cp.audit.service.AuditSenderService;
+import uk.gov.hmcts.cp.audit.service.AuditUuidService;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -30,10 +31,12 @@ class AuditFilterNonBlockingIntegrationTest {
     @Autowired MockMvc mockMvc;
     @MockitoBean AuditSenderService auditSenderService;
     @MockitoBean AuditClockService clockService;
+    @MockitoBean AuditUuidService auditUuidService;
 
     @Test
     void audit_sender_failure_with_block_on_failure_false_should_pass_through_and_return_200() throws Exception {
         when(clockService.now()).thenReturn(Instant.parse("2026-01-01T00:00:00Z"));
+        when(auditUuidService.randomUUID()).thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000002"));
         doThrow(new IllegalStateException("broker down")).when(auditSenderService).send(any());
 
         mockMvc.perform(get("/audited").header("X-Correlation-Id", CORRELATION_ID))

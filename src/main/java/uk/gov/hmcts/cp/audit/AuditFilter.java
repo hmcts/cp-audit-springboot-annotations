@@ -53,7 +53,9 @@ public class AuditFilter extends OncePerRequestFilter {
             }
             case AuditDecision.Exclude ignored -> chain.doFilter(request, response);
             case AuditDecision.Audit audit -> {
+                final java.util.UUID metadataId = auditService.generateMetadataId();
                 final ContentCachingResponseWrapper buffered = new ContentCachingResponseWrapper(response);
+                final java.util.UUID metadataId = auditService.generateMetadataId();
                 try {
                     auditService.auditRequest(request, audit.annotation(), audit.correlationId());
                     chain.doFilter(request, buffered);
@@ -66,6 +68,9 @@ public class AuditFilter extends OncePerRequestFilter {
                     }
                     auditService.auditResponse(request, audit.annotation(), audit.correlationId(), buffered.getStatus());
                     buffered.copyBodyToResponse();
+                    auditService.auditRequest(request, audit.annotation(), audit.correlationId(), metadataId);
+                    chain.doFilter(request, response);
+                    auditService.auditResponse(request, audit.annotation(), audit.correlationId(), metadataId, response.getStatus());
                 } catch (final Exception e) {
                     log.error("Audit failed for {} {}", audit.correlationId(), Encode.forJava(request.getRequestURI()), e);
                     if (properties.isBlockOnFailure()) {
