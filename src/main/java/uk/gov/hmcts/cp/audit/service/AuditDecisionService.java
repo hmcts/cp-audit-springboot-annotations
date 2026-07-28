@@ -38,7 +38,7 @@ public class AuditDecisionService {
         try {
             return new AuditDecision.Audit(detail, UUID.fromString(correlationId));
         } catch (final IllegalArgumentException e) {
-            log.error("Failed to parse correlationId as UUID:{}", Encode.forJava(correlationId));
+            log.error("Failed to parse correlationId as UUID: {}", Encode.forJava(correlationId));
             return new AuditDecision.Block(CORRELATION_HEADER + " is not a valid UUID");
         }
     }
