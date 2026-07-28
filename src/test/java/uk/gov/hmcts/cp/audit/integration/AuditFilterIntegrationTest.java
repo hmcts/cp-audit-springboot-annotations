@@ -112,11 +112,24 @@ class AuditFilterIntegrationTest {
     }
 
     @Test
-    void calling_endpoint_with_expected_mdc_fields_set_should_return_200() throws Exception {
+    void calling_endpoint_with_expected_mdc_fields_set_should_return_200_and_populate_user_from_mdc() throws Exception {
         mockMvc.perform(get("/audited-with-mdc").header("X-Correlation-Id", CORRELATION_ID))
                 .andExpect(status().isOk());
 
-        verify(auditSenderService, times(2)).send(any());
+        verify(auditSenderService, times(2)).send(messageCaptor.capture());
+        final List<AuditMessage> messages = messageCaptor.getAllValues();
+
+        JSONAssert.assertEquals(
+                """
+                { "content": { "_metadata": { "context": { "user": null } } } }
+                """,
+                MAPPER.writeValueAsString(messages.get(0)), JSONCompareMode.LENIENT);
+
+        JSONAssert.assertEquals(
+                """
+                { "content": { "_metadata": { "context": { "user": "00000000-0000-0000-0000-000000000020" } } } }
+                """,
+                MAPPER.writeValueAsString(messages.get(1)), JSONCompareMode.LENIENT);
     }
 
     @Test

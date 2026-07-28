@@ -32,7 +32,7 @@ public class AuditPayloadGenerationService {
         final AuditMetadata metadata = AuditMetadata.builder()
                 .id(metadataId)
                 .name(annotation.eventName())
-                .context(new AuditContext(null))
+                .context(new AuditContext(MDC.get(AuditMdcKeys.USER_ID)))
                 .build();
 
         final AuditPayload content = AuditPayload.builder()
