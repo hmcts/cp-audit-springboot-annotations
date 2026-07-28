@@ -107,9 +107,6 @@ class AuditFilterTest {
         auditFilter.doFilterInternal(request, response, chain);
 
         verify(chain).doFilter(eq(request), any(ContentCachingResponseWrapper.class));
-        verify(auditService).auditRequest(eq(request), eq(annotation), eq(correlationId));
-        verify(auditService).auditResponse(eq(request), eq(annotation), eq(correlationId), eq(200));
-        verify(chain).doFilter(request, response);
         verify(auditService).auditRequest(eq(request), eq(annotation), eq(correlationId), eq(metadataId));
         verify(auditService).auditResponse(eq(request), eq(annotation), eq(correlationId), eq(metadataId), eq(200));
     }

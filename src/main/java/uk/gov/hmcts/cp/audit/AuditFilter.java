@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -53,11 +54,10 @@ public class AuditFilter extends OncePerRequestFilter {
             }
             case AuditDecision.Exclude ignored -> chain.doFilter(request, response);
             case AuditDecision.Audit audit -> {
-                final java.util.UUID metadataId = auditService.generateMetadataId();
+                final UUID metadataId = auditService.generateMetadataId();
                 final ContentCachingResponseWrapper buffered = new ContentCachingResponseWrapper(response);
-                final java.util.UUID metadataId = auditService.generateMetadataId();
                 try {
-                    auditService.auditRequest(request, audit.annotation(), audit.correlationId());
+                    auditService.auditRequest(request, audit.annotation(), audit.correlationId(), metadataId);
                     chain.doFilter(request, buffered);
                     final String missingFields = missingMdcFields(audit.annotation());
                     if (!missingFields.isEmpty()) {
@@ -66,11 +66,8 @@ public class AuditFilter extends OncePerRequestFilter {
                         sendForbidden(response, "Audit failure — missing MDC fields: " + missingFields);
                         return;
                     }
-                    auditService.auditResponse(request, audit.annotation(), audit.correlationId(), buffered.getStatus());
+                    auditService.auditResponse(request, audit.annotation(), audit.correlationId(), metadataId, buffered.getStatus());
                     buffered.copyBodyToResponse();
-                    auditService.auditRequest(request, audit.annotation(), audit.correlationId(), metadataId);
-                    chain.doFilter(request, response);
-                    auditService.auditResponse(request, audit.annotation(), audit.correlationId(), metadataId, response.getStatus());
                 } catch (final Exception e) {
                     log.error("Audit failed for {} {}", audit.correlationId(), Encode.forJava(request.getRequestURI()), e);
                     if (properties.isBlockOnFailure()) {
