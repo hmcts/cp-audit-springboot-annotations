@@ -73,6 +73,8 @@ public class AuditFilter extends OncePerRequestFilter {
                     } else {
                         chain.doFilter(request, response);
                     }
+                } finally {
+                    clearMdcFields(audit.annotation());
                 }
             }
         }
@@ -82,6 +84,10 @@ public class AuditFilter extends OncePerRequestFilter {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("text/plain");
         response.getOutputStream().write(message.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static void clearMdcFields(final AuditDetail annotation) {
+        Arrays.stream(annotation.expectedMdcFields()).forEach(MDC::remove);
     }
 
     private static String missingMdcFields(final AuditDetail annotation) {
