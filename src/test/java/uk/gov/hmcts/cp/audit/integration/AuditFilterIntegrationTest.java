@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -108,6 +109,21 @@ class AuditFilterIntegrationTest {
         mockMvc.perform(get("/audited").header("X-Correlation-Id", CORRELATION_ID))
                 .andExpect(status().isForbidden())
                 .andExpect(content().string("Audit failure"));
+    }
+
+    @Test
+    void calling_endpoint_with_expected_mdc_fields_set_should_return_200() throws Exception {
+        mockMvc.perform(get("/audited-with-mdc").header("X-Correlation-Id", CORRELATION_ID))
+                .andExpect(status().isOk());
+
+        verify(auditSenderService, times(2)).send(any());
+    }
+
+    @Test
+    void calling_endpoint_with_expected_mdc_fields_missing_should_return_403() throws Exception {
+        mockMvc.perform(get("/audited-with-mdc-missing").header("X-Correlation-Id", CORRELATION_ID))
+                .andExpect(status().isForbidden())
+                .andExpect(content().string(containsString("missing MDC fields")));
     }
 
     private String expectedRequest() {

@@ -1,10 +1,9 @@
 package uk.gov.hmcts.cp.audit;
 
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,7 +21,10 @@ import uk.gov.hmcts.cp.audit.service.AuditService;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.web.util.ContentCachingResponseWrapper;
+
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
@@ -83,7 +85,7 @@ class AuditFilterTest {
         when(handlerMapping.getHandler(request)).thenReturn(executionChain);
         when(executionChain.getHandler()).thenReturn(handlerMethod);
         when(decisionService.decide(handlerMethod, request)).thenReturn(new AuditDecision.Block("missing header"));
-        when(response.getWriter()).thenReturn(new PrintWriter(new StringWriter()));
+        when(response.getOutputStream()).thenReturn(mock(ServletOutputStream.class));
 
         auditFilter.doFilterInternal(request, response, chain);
 
@@ -104,7 +106,7 @@ class AuditFilterTest {
 
         auditFilter.doFilterInternal(request, response, chain);
 
-        verify(chain).doFilter(request, response);
+        verify(chain).doFilter(eq(request), any(ContentCachingResponseWrapper.class));
         verify(auditService).auditRequest(eq(request), eq(annotation), eq(correlationId), eq(metadataId));
         verify(auditService).auditResponse(eq(request), eq(annotation), eq(correlationId), eq(metadataId), eq(200));
     }

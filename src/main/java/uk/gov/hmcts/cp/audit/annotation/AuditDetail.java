@@ -13,4 +13,5 @@ public @interface AuditDetail {
     String eventName();
     String action() default "View";
     String[] pathParams() default {};
+    String[] expectedMdcFields() default {};
 }

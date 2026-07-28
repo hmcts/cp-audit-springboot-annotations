@@ -11,13 +11,20 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
+import org.slf4j.MDC;
+import org.springframework.web.util.ContentCachingResponseWrapper;
+import uk.gov.hmcts.cp.audit.annotation.AuditDetail;
 import uk.gov.hmcts.cp.audit.config.AuditProperties;
 import uk.gov.hmcts.cp.audit.model.AuditDecision;
 import uk.gov.hmcts.cp.audit.service.AuditDecisionService;
 import uk.gov.hmcts.cp.audit.service.AuditService;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -47,11 +54,20 @@ public class AuditFilter extends OncePerRequestFilter {
             }
             case AuditDecision.Exclude ignored -> chain.doFilter(request, response);
             case AuditDecision.Audit audit -> {
-                final java.util.UUID metadataId = auditService.generateMetadataId();
+                final UUID metadataId = auditService.generateMetadataId();
+                final ContentCachingResponseWrapper buffered = new ContentCachingResponseWrapper(response);
                 try {
                     auditService.auditRequest(request, audit.annotation(), audit.correlationId(), metadataId);
-                    chain.doFilter(request, response);
-                    auditService.auditResponse(request, audit.annotation(), audit.correlationId(), metadataId, response.getStatus());
+                    chain.doFilter(request, buffered);
+                    final String missingFields = missingMdcFields(audit.annotation());
+                    if (!missingFields.isEmpty()) {
+                        log.error("Audit blocked response {} {}: expectedMdcFields not set in MDC: {}",
+                                request.getMethod(), Encode.forJava(request.getRequestURI()), missingFields);
+                        sendForbidden(response, "Audit failure — missing MDC fields: " + missingFields);
+                        return;
+                    }
+                    auditService.auditResponse(request, audit.annotation(), audit.correlationId(), metadataId, buffered.getStatus());
+                    buffered.copyBodyToResponse();
                 } catch (final Exception e) {
                     log.error("Audit failed for {} {}", audit.correlationId(), Encode.forJava(request.getRequestURI()), e);
                     if (properties.isBlockOnFailure()) {
@@ -59,6 +75,8 @@ public class AuditFilter extends OncePerRequestFilter {
                     } else {
                         chain.doFilter(request, response);
                     }
+                } finally {
+                    clearMdcFields(audit.annotation());
                 }
             }
         }
@@ -67,7 +85,20 @@ public class AuditFilter extends OncePerRequestFilter {
     private void sendForbidden(final HttpServletResponse response, final String message) throws IOException {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("text/plain");
-        response.getWriter().write(message);
+        response.getOutputStream().write(message.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static void clearMdcFields(final AuditDetail annotation) {
+        Arrays.stream(annotation.expectedMdcFields()).forEach(MDC::remove);
+    }
+
+    private static String missingMdcFields(final AuditDetail annotation) {
+        return Arrays.stream(annotation.expectedMdcFields())
+                .filter(key -> {
+                    final String value = MDC.get(key);
+                    return value == null || value.isBlank();
+                })
+                .collect(Collectors.joining(", "));
     }
 
     private HandlerMethod resolveHandler(final HttpServletRequest request) {
