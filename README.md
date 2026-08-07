@@ -180,7 +180,7 @@ flowchart TD
 - `ObjectMapper` with JavaTimeModule.
 - `AuditDecisionService` — evaluates `@AuditDetail` / `@AuditExclude` and checks `X-Correlation-ID`.
 - `AuditPayloadGenerationService` — builds the structured JSON payload from the annotation and MDC.
-- `AuditSenderService` — publishes to `jms.topic.auditing.event`.
+- `AuditSenderService` — serializes to JSON and publishes to `jms.topic.auditing.event` with the `CPPNAME` JMS property set to `audit.events.audit-recorded`.
 - `AuditService` — orchestrates decision → payload → send.
 - `AuditFilter` — resolves the Spring MVC handler method and delegates to `AuditService`.
 
@@ -306,6 +306,18 @@ class MyControllerAuditTest {
     }
 }
 ```
+
+---
+
+## JMS Message Properties
+
+Every audit message published to Artemis carries the following JMS message property:
+
+| Property | Value |
+|---|---|
+| `CPPNAME` | `audit.events.audit-recorded` |
+
+This is set via a `MessagePostProcessor` in `AuditSenderService` and is used by the Artemis broker for message routing and filtering. It is not part of the JSON body.
 
 ---
 
