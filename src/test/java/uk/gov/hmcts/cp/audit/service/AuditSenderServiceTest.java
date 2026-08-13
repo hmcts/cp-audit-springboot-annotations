@@ -17,7 +17,6 @@ import uk.gov.hmcts.cp.audit.model.AuditMessage;
 import uk.gov.hmcts.cp.audit.model.AuditMetadata;
 import uk.gov.hmcts.cp.audit.model.AuditPayload;
 
-import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,15 +41,17 @@ class AuditSenderServiceTest {
     @Test
     void sending_an_audit_message_should_publish_json_to_the_audit_topic() throws Exception {
         final AuditMessage message = AuditMessage.builder()
+                .metadata(AuditMetadata.builder()
+                        .id(UUID.fromString("00000000-0000-0000-0000-000000000002"))
+                        .name(AuditMessage.AUDIT_EVENT_NAME)
+                        .createdAt("2026-01-01T00:00:00Z")
+                        .context(new AuditContext(null))
+                        .build())
                 .origin("test-service")
                 .component("API")
-                .timestamp(Instant.parse("2026-01-01T00:00:00Z"))
+                .timestamp("2026-01-01T00:00:00Z")
                 .content(AuditPayload.builder()
-                        .metadata(AuditMetadata.builder()
-                                .id(UUID.fromString("00000000-0000-0000-0000-000000000002"))
-                                .name("test.event")
-                                .context(new AuditContext(null))
-                                .build())
+                        .eventName("test.event")
                         .eventType(AuditEventType.REQUEST)
                         .action("View")
                         .correlationId(UUID.fromString("00000000-0000-0000-0000-000000000123"))

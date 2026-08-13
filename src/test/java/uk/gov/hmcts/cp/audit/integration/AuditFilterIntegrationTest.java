@@ -1,8 +1,6 @@
 package uk.gov.hmcts.cp.audit.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import uk.gov.hmcts.cp.audit.config.ArtemisAuditAutoConfiguration;
 import uk.gov.hmcts.cp.audit.model.AuditMessage;
 import uk.gov.hmcts.cp.audit.service.AuditClockService;
 import uk.gov.hmcts.cp.audit.service.AuditSenderService;
@@ -43,9 +42,13 @@ class AuditFilterIntegrationTest {
     private static final UUID CORRELATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
     private static final UUID METADATA_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    /**
+     * Deliberately the production mapper, not a locally-configured one. An earlier version of this
+     * test built its own mapper with WRITE_DATES_AS_TIMESTAMPS disabled, so it serialised the
+     * timestamp as an ISO string while production serialised it as an epoch decimal — and the
+     * mismatch went unnoticed until audit2dls rejected the message.
+     */
+    private static final ObjectMapper MAPPER = new ArtemisAuditAutoConfiguration().auditObjectMapper();
 
     @Autowired MockMvc mockMvc;
     @MockitoBean AuditSenderService auditSenderService;
@@ -121,13 +124,13 @@ class AuditFilterIntegrationTest {
 
         JSONAssert.assertEquals(
                 """
-                { "content": { "_metadata": { "context": { "user": null } } } }
+                { "_metadata": { "context": { "user": null } } }
                 """,
                 MAPPER.writeValueAsString(messages.get(0)), JSONCompareMode.LENIENT);
 
         JSONAssert.assertEquals(
                 """
-                { "content": { "_metadata": { "context": { "user": "00000000-0000-0000-0000-000000000020" } } } }
+                { "_metadata": { "context": { "user": "00000000-0000-0000-0000-000000000020" } } }
                 """,
                 MAPPER.writeValueAsString(messages.get(1)), JSONCompareMode.LENIENT);
     }
@@ -142,15 +145,17 @@ class AuditFilterIntegrationTest {
     private String expectedRequest() {
         return """
                 {
+                  "_metadata": {
+                    "id":        "00000000-0000-0000-0000-000000000002",
+                    "name":      "audit.events.audit-recorded",
+                    "createdAt": "2026-01-01T00:00:00Z",
+                    "context":   { "user": null }
+                  },
                   "origin":    "hearing-results-document",
                   "component": "QUERY_API",
                   "timestamp": "2026-01-01T00:00:00Z",
                   "content": {
-                    "_metadata": {
-                      "id":   "00000000-0000-0000-0000-000000000002",
-                      "name": "test.audited",
-                      "context": { "user": null }
-                    },
+                    "eventName":      "test.audited",
                     "eventType":      "REQUEST",
                     "action":         "View",
                     "correlationId":  "00000000-0000-0000-0000-000000000001",
@@ -168,15 +173,17 @@ class AuditFilterIntegrationTest {
     private String expectedResponse() {
         return """
                 {
+                  "_metadata": {
+                    "id":        "00000000-0000-0000-0000-000000000002",
+                    "name":      "audit.events.audit-recorded",
+                    "createdAt": "2026-01-01T00:00:00Z",
+                    "context":   { "user": null }
+                  },
                   "origin":    "hearing-results-document",
                   "component": "QUERY_API",
                   "timestamp": "2026-01-01T00:00:00Z",
                   "content": {
-                    "_metadata": {
-                      "id":   "00000000-0000-0000-0000-000000000002",
-                      "name": "test.audited",
-                      "context": { "user": null }
-                    },
+                    "eventName":      "test.audited",
                     "eventType":      "RESPONSE",
                     "action":         "View",
                     "correlationId":  "00000000-0000-0000-0000-000000000001",

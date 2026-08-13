@@ -11,6 +11,7 @@ import uk.gov.hmcts.cp.audit.model.AuditMessage;
 import uk.gov.hmcts.cp.audit.model.AuditMetadata;
 import uk.gov.hmcts.cp.audit.model.AuditPayload;
 
+import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -29,14 +30,19 @@ public class AuditPayloadGenerationService {
                               final UUID metadataId,
                               final AuditEventType eventType,
                               final Integer responseStatus) {
+        final String timestamp = clockService.now().truncatedTo(ChronoUnit.MILLIS).toString();
+
+        // Envelope metadata: name is the event the consumer dispatches on, never the business
+        // event name — that goes in the content block below.
         final AuditMetadata metadata = AuditMetadata.builder()
                 .id(metadataId)
-                .name(annotation.eventName())
+                .name(AuditMessage.AUDIT_EVENT_NAME)
+                .createdAt(timestamp)
                 .context(new AuditContext(MDC.get(AuditMdcKeys.USER_ID)))
                 .build();
 
         final AuditPayload content = AuditPayload.builder()
-                .metadata(metadata)
+                .eventName(annotation.eventName())
                 .eventType(eventType)
                 .action(annotation.action())
                 .correlationId(correlationId)
@@ -49,9 +55,10 @@ public class AuditPayloadGenerationService {
                 .build();
 
         return AuditMessage.builder()
+                .metadata(metadata)
                 .origin(annotation.origin())
                 .component(annotation.component())
-                .timestamp(clockService.now())
+                .timestamp(timestamp)
                 .content(content)
                 .build();
     }
