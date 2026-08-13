@@ -8,9 +8,7 @@ import lombok.Getter;
  * The audit message as it appears on the wire.
  *
  * <p>Shape is fixed by the CPP framework and by the audit2dls consumer:
- * {@code _metadata} must be a <strong>top-level</strong> sibling of the payload fields, otherwise
- * {@code DefaultJsonObjectEnvelopeConverter.asEnvelope} cannot build a {@code JsonEnvelope} and the
- * message is rolled back and dead-lettered. The remaining top-level fields form the envelope
+ *  The top-level fields form the envelope
  * payload and are validated against {@code audit.events.audit-recorded.json}, which requires
  * {@code timestamp} (string, date-time), {@code origin} and {@code content}.
  */
@@ -18,7 +16,7 @@ import lombok.Getter;
 @Builder
 public class AuditMessage {
 
-    /** Envelope event name. Consumers subscribe and dispatch on this exact value. */
+    /** Envelope event name. Always Fixed. Consumers subscribe and dispatch on this exact value. */
     public static final String AUDIT_EVENT_NAME = "audit.events.audit-recorded";
 
     @JsonProperty("_metadata")

@@ -43,10 +43,7 @@ class AuditFilterIntegrationTest {
     private static final UUID METADATA_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
     /**
-     * Deliberately the production mapper, not a locally-configured one. An earlier version of this
-     * test built its own mapper with WRITE_DATES_AS_TIMESTAMPS disabled, so it serialised the
-     * timestamp as an ISO string while production serialised it as an epoch decimal — and the
-     * mismatch went unnoticed until audit2dls rejected the message.
+     * Deliberately the production mapper, not a locally-configured one as that hides the serialisation problems in runtime
      */
     private static final ObjectMapper MAPPER = new ArtemisAuditAutoConfiguration().auditObjectMapper();
 

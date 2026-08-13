@@ -18,6 +18,14 @@ import java.util.UUID;
 
 public class AuditPayloadGenerationService {
 
+    /**
+     * Inbound header carrying the calling user's UUID. This is the CPP-wide convention and the same
+     * source {@code cp-audit-filter-springboot} uses, so audit records from annotation-driven and
+     * spec-driven services attribute the user identically. Servlet header lookup is
+     * case-insensitive, so the header may arrive in any casing.
+     */
+    private static final String CJSCPPUID_HEADER = "CJSCPPUID";
+
     private final AuditClockService clockService;
 
     public AuditPayloadGenerationService(final AuditClockService clockService) {
@@ -38,7 +46,7 @@ public class AuditPayloadGenerationService {
                 .id(metadataId)
                 .name(AuditMessage.AUDIT_EVENT_NAME)
                 .createdAt(timestamp)
-                .context(new AuditContext(MDC.get(AuditMdcKeys.USER_ID)))
+                .context(new AuditContext(resolveUserId(request)))
                 .build();
 
         final AuditPayload content = AuditPayload.builder()
@@ -61,6 +69,19 @@ public class AuditPayloadGenerationService {
                 .timestamp(timestamp)
                 .content(content)
                 .build();
+    }
+
+    /**
+     * Resolves the audited user, preferring the inbound {@code CJSCPPUID} header and falling back
+     * to the {@link AuditMdcKeys#USER_ID} MDC key for services that resolve the identity themselves
+     * (e.g. from a JWT claim) rather than receiving it as a header. Null when neither is present.
+     */
+    private static String resolveUserId(final HttpServletRequest request) {
+        final String header = request.getHeader(CJSCPPUID_HEADER);
+        if (header != null && !header.isBlank()) {
+            return header;
+        }
+        return MDC.get(AuditMdcKeys.USER_ID);
     }
 
     private static UUID uuidFromMdc(final String key) {
