@@ -18,6 +18,8 @@ public class AuditPayload {
     private final String eventName;
     private final AuditEventType eventType;
     private final String action;
+    /** Calling API client, from {@link AuditMdcKeys#CLIENT_ID}. */
+    private final UUID clientId;
     private final UUID materialId;
     private final UUID caseId;
     private final UUID hearingId;

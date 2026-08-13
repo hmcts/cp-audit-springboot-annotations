@@ -127,6 +127,16 @@ MDC.put(AuditMdcKeys.HEARING_ID,        hearingId.toString());
 MDC.put(AuditMdcKeys.COURT_DOCUMENT_ID, courtDocumentId.toString());
 ```
 
+The calling API client is read the same way and emitted as `content.clientId`. Set it from
+whatever your auth filter already resolved — typically the JWT `azp` claim:
+
+```java
+MDC.put(AuditMdcKeys.CLIENT_ID, clientId.toString());
+```
+
+All of these are parsed as UUIDs; a value that is absent or unparseable yields `null` rather than
+failing the request.
+
 ### 6) Minimal configuration
 
 ```yaml

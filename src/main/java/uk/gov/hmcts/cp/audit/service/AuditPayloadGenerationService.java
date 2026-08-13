@@ -53,6 +53,7 @@ public class AuditPayloadGenerationService {
                 .eventName(annotation.eventName())
                 .eventType(eventType)
                 .action(annotation.action())
+                .clientId(uuidFromMdc(AuditMdcKeys.CLIENT_ID))
                 .correlationId(correlationId)
                 .responseStatus(responseStatus)
                 .materialId(uuidFromMdc(AuditMdcKeys.MATERIAL_ID))

@@ -80,15 +80,38 @@ class AuditPayloadGenerationServiceUserTest {
         assertThat(user(request())).isNull();
     }
 
+    @Test
+    void client_id_should_be_taken_from_mdc_into_the_content_block() {
+        final UUID clientId = UUID.fromString("33333333-3333-3333-3333-333333333333");
+        MDC.put(AuditMdcKeys.CLIENT_ID, clientId.toString());
+
+        assertThat(build(request()).getContent().getClientId()).isEqualTo(clientId);
+    }
+
+    @Test
+    void client_id_should_be_null_when_mdc_is_unset() {
+        assertThat(build(request()).getContent().getClientId()).isNull();
+    }
+
+    @Test
+    void client_id_should_be_null_when_mdc_holds_a_non_uuid() {
+        MDC.put(AuditMdcKeys.CLIENT_ID, "not-a-uuid");
+
+        assertThat(build(request()).getContent().getClientId()).isNull();
+    }
+
     private String user(final MockHttpServletRequest request) {
-        final AuditMessage message = service.build(
+        return build(request).getMetadata().getContext().user();
+    }
+
+    private AuditMessage build(final MockHttpServletRequest request) {
+        return service.build(
                 request,
                 auditDetail(),
                 UUID.fromString("00000000-0000-0000-0000-000000000001"),
                 UUID.fromString("00000000-0000-0000-0000-000000000002"),
                 AuditEventType.REQUEST,
                 null);
-        return message.getMetadata().getContext().user();
     }
 
     private static MockHttpServletRequest request() {
