@@ -15,6 +15,7 @@ the request header first, then from MDC (set by a tracing filter upstream).
 - **Zero component scanning**: all beans created via a single `@AutoConfiguration`.
 - **Blocks by default**: unannotated endpoints return 403 until explicitly annotated.
 - **MDC-aware**: `X-Correlation-Id` and domain IDs (`materialId`, `caseId`, etc.) are read from MDC.
+- **User attribution**: `_metadata.context.user` comes from the inbound `CJSCPPUID` header, falling back to MDC.
 - **Non-blocking mode**: set `cp.audit.block-on-failure=false` to log and pass through on Artemis failure.
 - **Active–Passive Artemis HA** auto-detected from host count.
 
@@ -98,7 +99,24 @@ public class DocumentController {
 tracing filter (e.g. `TracingFilter` with `@Order(HIGHEST_PRECEDENCE)`) puts it in MDC,
 clients do not need to set it explicitly. Requests where it cannot be found in either are blocked with 403.
 
-### 4) Populate MDC for domain IDs (optional)
+### 4) The audited user
+
+`_metadata.context.user` is resolved from the inbound **`CJSCPPUID`** header — the CPP-wide
+convention, and the same source `cp-audit-filter-springboot` uses, so audit records attribute the
+user identically whichever library produced them. Header lookup is case-insensitive.
+
+If your service resolves the caller itself (for example from a JWT claim) rather than receiving the
+header, put it in MDC instead and the header falls back to it:
+
+```java
+MDC.put(AuditMdcKeys.USER_ID, callerId.toString());
+```
+
+The header wins when both are present. When neither is, `user` is `null` — the consumer schema
+treats `content` as free-form and does not require it, so this does not block delivery, but the
+record is unattributable.
+
+### 5) Populate MDC for domain IDs (optional)
 
 Domain-specific IDs are read from MDC on the **response** event. Set them in your service layer:
 
@@ -109,7 +127,17 @@ MDC.put(AuditMdcKeys.HEARING_ID,        hearingId.toString());
 MDC.put(AuditMdcKeys.COURT_DOCUMENT_ID, courtDocumentId.toString());
 ```
 
-### 5) Minimal configuration
+The calling API client is read the same way and emitted as `content.clientId`. Set it from
+whatever your auth filter already resolved — typically the JWT `azp` claim:
+
+```java
+MDC.put(AuditMdcKeys.CLIENT_ID, clientId.toString());
+```
+
+All of these are parsed as UUIDs; a value that is absent or unparseable yields `null` rather than
+failing the request.
+
+### 6) Minimal configuration
 
 ```yaml
 cp:

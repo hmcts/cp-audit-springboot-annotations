@@ -22,6 +22,7 @@ ext {
     jupiterVersion     = '5.12.2'
     platformLauncher   = '6.1.2'
     artemisVer         = '2.43.0'
+    jsonSchemaValidatorVersion = '1.5.6'
 }
 
 configurations.all {
@@ -60,5 +61,7 @@ dependencies {
     }
     testImplementation "org.springframework.boot:spring-boot-starter-web:$springBootVersion"
     testImplementation "org.springframework.boot:spring-boot-webmvc-test:$springBootVersion"
+    // Validates the serialised audit message against the audit2dls consumer schema
+    testImplementation "com.networknt:json-schema-validator:$jsonSchemaValidatorVersion"
     testRuntimeOnly    "org.junit.platform:junit-platform-launcher:$platformLauncher"
 }

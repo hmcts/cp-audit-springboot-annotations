@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "http://justice.gov.uk/json/schemas/domains/audit/audit.events.audit-recorded.json",
+  "type": "object",
+  "properties": {
+    "timestamp": {
+      "id": "/timestamp",
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp",
+      "name": "Timestamp",
+      "title": "Timestamp"
+    },
+    "origin": {
+      "id": "/origin",
+      "type": "string",
+      "description": "The context which raised the audit event",
+      "name": "Origin",
+      "title": "Origin"
+    },
+    "component": {
+      "id": "/component",
+      "type": "string",
+      "description": "The service component which raised the audit event",
+      "name": "Component",
+      "title": "Component"
+    },
+    "content": {
+      "id": "/content",
+      "type": "object",
+      "description": "The audit entry content",
+      "name": "Content",
+      "title": "Content",
+      "additionalProperties": true
+    }
+  },
+  "required": [
+    "timestamp",
+    "origin",
+    "content"
+  ]
+}
